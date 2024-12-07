@@ -64,7 +64,7 @@ async function removeSpecificFirstLine(filePath: string): Promise<void> {
 }
 
 /**
- * Generates day folders (day1 to day25) for the given year.
+ * Generates day folders (day01 to day25) for the given year.
  * @param year - The year for which folders should be generated.
  */
 async function generateDayFolders(year: string): Promise<void> {
@@ -72,7 +72,8 @@ async function generateDayFolders(year: string): Promise<void> {
   const baseDestinationFolder = `./years/${year}`;
 
   for (let day = 1; day <= 25; day++) {
-    const dayFolderName = `day${day}`;
+    // Format day with leading zero
+    const dayFolderName = `day${String(day).padStart(2, "0")}`;
     const destinationFolder = join(baseDestinationFolder, dayFolderName);
     const destinationFile = join(destinationFolder, "index.ts");
 
