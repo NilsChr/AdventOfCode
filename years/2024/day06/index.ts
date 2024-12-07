@@ -75,8 +75,10 @@ export async function run(dir: string) {
     loops += check_loop(data.grid, data.startPos);
     data.grid[pos.y][pos.x] = ".";
   }
-  console.log("Task 1:", visited.size);
-  console.log("Task 2:", loops);
+  //console.log("Task 1:", visited.size);
+  //console.log("Task 2:", loops);
+
+  return [visited.size,loops]
 }
 
 function getStartPos(grid: string[][]): Vec2 {

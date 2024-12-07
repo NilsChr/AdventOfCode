@@ -15,7 +15,7 @@ export function formatTime(durationNs: bigint): string {
     value = Number(durationNs) / 1_000_000_000;
     unit = "s";
   }
-  return `${value} ${unit}`;
+  return `${value.toFixed(3)} ${unit}`;
 }
 
 export async function sleep(ms: number): Promise<void> {
