@@ -65,8 +65,6 @@ async function runDay(
 // Main execution
 (async () => {
   console.log(`🎅 ✨ Advent Of Code ${year} ✨`);
-  //console.log(`\n🎅 🎄✨ Advent of Code ${year} Summary ✨🎄`);
-
   const totalStart = process.hrtime.bigint();
   const results: {
     day: string;
@@ -83,27 +81,33 @@ async function runDay(
   }
 
   const totalEnd = process.hrtime.bigint();
-  const grandTotal = totalEnd - totalStart;
-
+  const cellPaddingSmall = 10;
+  const cellPadding = 20;
   // Print summary table
   console.log(`\n🎄✨ Advent of Code ${year} Summary ✨🎄`);
-  console.log("-".repeat(50));
+  console.log("-".repeat(cellPadding * 4));
   console.log(
-    `${"Day".padEnd(5)} ${"Task1".padEnd(10)} ${"Task2".padEnd(
-      10
-    )} ${"Total".padEnd(10)}`
+    `${"Day".padEnd(cellPaddingSmall)} ${"Task1".padEnd(
+      cellPadding
+    )} ${"Task2".padEnd(cellPadding)} ${"Total".padEnd(cellPadding)}`
   );
-  console.log("-".repeat(50));
+  console.log("-".repeat(cellPadding * 4));
 
   results.forEach(({ day, task1, task2, total }) => {
     console.log(
-      `${day.padEnd(5)} ${String(task1 || 0).padEnd(10)} ${String(
-        task2 || 0
-      ).padEnd(10)} ${formatTime(total).padEnd(10)}`
+      `${day.padEnd(cellPaddingSmall)} ${String(task1 || 0).padEnd(
+        cellPadding
+      )} ${String(task2 || 0).padEnd(cellPadding)} ${formatTime(total).padEnd(
+        cellPadding
+      )}`
     );
   });
 
-  console.log("-".repeat(50));
-  console.log(`${"Overall".padEnd(25)} ${formatTime(grandTotal).padEnd(10)}`);
-  console.log("=".repeat(50));
+  console.log("-".repeat(cellPadding * 4));
+  console.log(
+    `${"Overall".padEnd(cellPaddingSmall)} ${"".padEnd(
+      cellPadding
+    )} ${"".padEnd(cellPadding)} ${formatTime(totalTime).padEnd(cellPadding)}`
+  );
+  console.log("=".repeat(cellPadding * 4));
 })();

@@ -1,7 +1,7 @@
 import { join } from "path";
 import { parseFileToRows } from "../../../helpers/fileParser";
 
-export async function run(dir: string): [number,number] {
+export async function run(dir: string): Promise<[number,number]> {
   const filePath = join(dir, `${process.env.FILE}.txt`);
   let input = await parseFileToRows(filePath);
 
