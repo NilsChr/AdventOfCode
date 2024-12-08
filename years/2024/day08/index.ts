@@ -19,43 +19,39 @@ export async function run(dir: string): Promise<[number, number]> {
     }
   }
 
-  let antinodesT1: Vec2[] = [];
-  let antinodesT2: Vec2[] = [];
+  let antinodesT1: Set<string> = new Set();
+  let antinodesT2: Set<string> = new Set();
 
   for (let key of antennas.keys()) {
     const antennaList = antennas.get(key) || [];
     for (let antenna of antennaList) {
       for (let a of antennaList) {
         if (!Vec2.equals(antenna, a)) {
-          antinodesT1.push(...getAntiNodes(antenna, a, false, 0));
-          antinodesT2.push(...getAntiNodes(antenna, a, true, grid.length));
+          getAntiNodes(antenna, a, grid.length, antinodesT1, antinodesT2);
         }
       }
     }
   }
 
-  const task1 = getDistictAntinodes(
-    antinodesT1.filter((v) => !Vec2.outOfBoundsSquare(v, grid.length))
-  ).length;
-  const task2 = getDistictAntinodes(
-    antinodesT2.filter((v) => !Vec2.outOfBoundsSquare(v, grid.length))
-  ).length;
-
-  return [task1, task2];
+  return [antinodesT1.size, antinodesT2.size];
 }
 
 function getAntiNodes(
   a: Vec2,
   b: Vec2,
-  addSteps: boolean,
-  limit: number
-): Vec2[] {
+  limit: number,
+  t1: Set<string>,
+  t2: Set<string>
+) {
   const diff = Vec2.create(a.x - b.x, a.y - b.y);
   const n1 = Vec2.add(a, diff);
   const n2 = Vec2.add(b, Vec2.negate(diff));
-  
-  if (!addSteps) {
-    return [n1, n2];
+
+  if (!Vec2.outOfBoundsSquare(n1, limit)) {
+    t1.add(Vec2.toString(n1));
+  }
+  if (!Vec2.outOfBoundsSquare(n2, limit)) {
+    t1.add(Vec2.toString(n2));
   }
 
   const stepSize = Vec2.subtract(a, n1);
@@ -65,17 +61,8 @@ function getAntiNodes(
   while (step.x >= 0 && step.x <= limit && step.y >= 0 && step.y <= limit) {
     step = Vec2.add(step, stepSize);
     steps.push(Vec2.copy(step));
-  }
-
-  return [n1, n2, ...steps];
-}
-
-function getDistictAntinodes(antinodes: Vec2[]): Vec2[] {
-  const result: Vec2[] = [];
-  for (const node of antinodes) {
-    if (!result.some((existing) => Vec2.equals(existing, node))) {
-      result.push(node);
+    if (!Vec2.outOfBoundsSquare(step, limit)) {
+      t2.add(Vec2.toString(step));
     }
   }
-  return result;
 }
