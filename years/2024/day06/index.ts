@@ -1,6 +1,6 @@
 import { join } from "path";
 import { parseFileToGrid } from "../../../helpers/fileParser";
-import Vec2 from "../../../helpers/vec2";
+import { Vec2 } from "../../../helpers/vec2"; // Assuming the utility Vec2 object is imported
 
 interface GridMap {
   startPos: Vec2;
@@ -8,10 +8,10 @@ interface GridMap {
 }
 
 const DIRECTIONS = {
-  NORTH: new Vec2(0, -1),
-  SOUTH: new Vec2(0, 1),
-  WEST: new Vec2(-1, 0),
-  EAST: new Vec2(1, 0)
+  NORTH: Vec2.create(0, -1),
+  SOUTH: Vec2.create(0, 1),
+  WEST: Vec2.create(-1, 0),
+  EAST: Vec2.create(1, 0),
 };
 
 class Guard {
@@ -19,7 +19,7 @@ class Guard {
   dir: Vec2;
 
   constructor(pos: Vec2) {
-    this.pos = pos.copy();
+    this.pos = Vec2.copy(pos);
     this.dir = DIRECTIONS.NORTH;
   }
 
@@ -41,7 +41,7 @@ class Guard {
   }
 
   nextPos(): Vec2 {
-    return this.dir.add(this.pos);
+    return Vec2.add(this.dir, this.pos);
   }
 
   icon() {
@@ -60,8 +60,8 @@ class Guard {
 
 export async function run(dir: string) {
   const data: GridMap = {
-    startPos: new Vec2(),
-    grid: []
+    startPos: Vec2.create(),
+    grid: [],
   };
   const filePath = join(dir, `${process.env.FILE}.txt`);
   data.grid = await parseFileToGrid(filePath);
@@ -75,15 +75,13 @@ export async function run(dir: string) {
     loops += check_loop(data.grid, data.startPos);
     data.grid[pos.y][pos.x] = ".";
   }
-  //console.log("Task 1:", visited.size);
-  //console.log("Task 2:", loops);
 
-  return [visited.size,loops]
+  return [visited.size, loops];
 }
 
 function getStartPos(grid: string[][]): Vec2 {
   const y = grid.findIndex((row) => row.includes("^"));
-  return y === -1 ? new Vec2() : new Vec2(grid[y].indexOf("^"), y);
+  return y === -1 ? Vec2.create() : Vec2.create(grid[y].indexOf("^"), y);
 }
 
 function traverse(grid: string[][], start: Vec2): Map<string, Vec2> {
@@ -91,14 +89,14 @@ function traverse(grid: string[][], start: Vec2): Map<string, Vec2> {
   const guard = new Guard(start);
   while (true) {
     const nextPos = guard.nextPos();
-    if (nextPos.outOfBoundsSquare(grid.length)) {
+    if (Vec2.outOfBoundsSquare(nextPos, grid.length)) {
       break;
     }
     if (grid[nextPos.y][nextPos.x] === "#") {
       guard.turn();
     } else {
       guard.pos = nextPos;
-      visited.set(nextPos.toString(), nextPos);
+      visited.set(Vec2.toString(nextPos), nextPos);
     }
   }
   return visited;
@@ -109,8 +107,8 @@ export function check_loop(grid: string[][], start: Vec2): number {
   const guard = new Guard(start);
   while (true) {
     const nextPos = guard.nextPos();
-    const key = nextPos.toString() + guard.dir.toString();
-    if (nextPos.outOfBoundsSquare(grid.length)) {
+    const key = Vec2.toString(nextPos) + Vec2.toString(guard.dir);
+    if (Vec2.outOfBoundsSquare(nextPos, grid.length)) {
       break;
     }
     if (visited.has(key)) {

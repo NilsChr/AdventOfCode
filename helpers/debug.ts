@@ -1,18 +1,20 @@
-import Vec2 from "./vec2";
+import { Vec2 } from "./vec2";
 import readline from "readline";
 
 export function debugGrid(
   grid: string[][],
-  focusPoint: Vec2,
-  focusChar: string = "o",
+  debugPoints: { pos: Vec2; char: string }[],
   clear = true
 ) {
   if (clear) console.clear();
   for (let y = 0; y < grid.length; y++) {
     let row = "";
     for (let x = 0; x < grid[y].length; x++) {
-      if (focusPoint.x === x && focusPoint.y === y) {
-        row += focusChar;
+      const debugPoint = debugPoints.find(
+        (p) => p.pos.x === x && p.pos.y === y
+      );
+      if (debugPoint) {
+        row += debugPoint.char;
       } else {
         row += grid[y][x];
       }
@@ -23,7 +25,7 @@ export function debugGrid(
 
 export async function waitForSpacePress(): Promise<void> {
   return new Promise((resolve) => {
-    console.log('\npress space to progress debug')
+    console.log("\npress space to progress debug");
 
     const rl = readline.createInterface({
       input: process.stdin,
@@ -50,22 +52,3 @@ export async function waitForSpacePress(): Promise<void> {
     process.stdin.on("data", handleKeyPress);
   });
 }
-
-/*
-
-function printMap(grid: string[][], guard: Guard) {
-  console.clear();
-  for (let y = 0; y < grid.length; y++) {
-    let row = "";
-    for (let x = 0; x < grid[y].length; x++) {
-      if (guard.pos.x === x && guard.pos.y === y) {
-        row += guard.icon();
-      } else {
-        row += grid[y][x];
-      }
-    }
-    console.log(row);
-  }
-}
-
-*/
