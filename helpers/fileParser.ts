@@ -4,7 +4,6 @@ export async function parseFileToString(filePath: string): Promise<string> {
 
 export async function parseFileToRows(filePath: string): Promise<string[]> {
   const data = await Bun.file(filePath).text();
-  // Split by newline; this handles both LF and CRLF
   return data.split(/\r?\n/);
 }
 
@@ -30,6 +29,16 @@ export async function parseFileToGrid(filePath: string): Promise<string[][]> {
   const data = await Bun.file(filePath).text();
   const rows = data.split(/\r?\n/);
   return rows.map((line) => line.split(""));
+}
+
+export async function parseFileToGridUint8(
+  filePath: string
+): Promise<Uint8Array[][]> {
+  const data = await Bun.file(filePath).text();
+  const rows = data.split(/\r?\n/);
+  return rows.map((line) =>
+    line.split("").map((char) => new Uint8Array([char.charCodeAt(0)]))
+  );
 }
 
 export async function parseFileToGridFlat(

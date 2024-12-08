@@ -48,7 +48,7 @@ async function runDay(
     const module = await import(`${scriptPath}/index.ts`);
     if (typeof module.run === "function") {
       const start = process.hrtime.bigint();
-      [task1 = 0, task2 = 0] = await module.run(__dirname); // Destructure results
+      [task1 = 0, task2 = 0] = await module.run(__dirname);
       const end = process.hrtime.bigint();
       totalDuration = end - start;
       console.log(`Day ${day} completed in ${formatTime(totalDuration)}`);
