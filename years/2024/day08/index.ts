@@ -11,11 +11,10 @@ export async function run(dir: string): Promise<[number, number]> {
     for (let x = 0; x < grid[0].length; x++) {
       const key = grid[y][x];
       if (key === ".") continue;
-      if (antennas.has(key)) {
-        antennas.get(key)?.push(Vec2.create(x, y));
-      } else {
-        antennas.set(key, [Vec2.create(x, y)]);
-      }
+
+      const positions = antennas.get(key) ?? [];
+      positions.push(Vec2.create(x, y));
+      antennas.set(key, positions);
     }
   }
 
@@ -55,14 +54,10 @@ function getAntiNodes(
   }
 
   const stepSize = Vec2.subtract(a, n1);
-  const steps: Vec2[] = [];
   let step = Vec2.copy(a);
-
-  while (step.x >= 0 && step.x <= limit && step.y >= 0 && step.y <= limit) {
+  while (true) {
     step = Vec2.add(step, stepSize);
-    steps.push(Vec2.copy(step));
-    if (!Vec2.outOfBoundsSquare(step, limit)) {
-      t2.add(Vec2.toString(step));
-    }
+    if (Vec2.outOfBoundsSquare(step, limit)) break;
+    t2.add(Vec2.toString(step));
   }
 }
