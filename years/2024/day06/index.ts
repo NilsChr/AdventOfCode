@@ -1,6 +1,6 @@
 import { join } from "path";
 import { parseFileToGrid } from "../../../helpers/fileParser";
-import { Vec2 } from "../../../helpers/vec2"; // Assuming the utility Vec2 object is imported
+import { Vec2 } from "../../../helpers/vec2";
 
 interface GridMap {
   startPos: Vec2;
@@ -122,19 +122,4 @@ export function check_loop(grid: string[][], start: Vec2): number {
     }
   }
   return 0;
-}
-
-function printMap(grid: string[][], guard: Guard) {
-  console.clear();
-  for (let y = 0; y < grid.length; y++) {
-    let row = "";
-    for (let x = 0; x < grid[y].length; x++) {
-      if (guard.pos.x === x && guard.pos.y === y) {
-        row += guard.icon();
-      } else {
-        row += grid[y][x];
-      }
-    }
-    console.log(row);
-  }
 }
