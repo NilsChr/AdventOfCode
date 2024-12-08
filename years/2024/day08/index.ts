@@ -22,20 +22,15 @@ export async function run(dir: string): Promise<[number, number]> {
   let antinodesT1: Vec2[] = [];
   let antinodesT2: Vec2[] = [];
 
-  let debugAntenas = [];
   for (let key of antennas.keys()) {
-    for (let antenna of antennas.get(key) || []) {
-      debugAntenas.push({ pos: antenna, char: key });
-      antennas
-        .get(key)!
-        .filter((a) => !Vec2.equals(antenna, a))
-        .forEach((a) => {
-          antinodesT1 = [...antinodesT1, ...getAntiNodes(antenna, a, false, 0)];
-          antinodesT2 = [
-            ...antinodesT2,
-            ...getAntiNodes(antenna, a, true, grid.length)
-          ];
-        });
+    const antennaList = antennas.get(key) || [];
+    for (let antenna of antennaList) {
+      for (let a of antennaList) {
+        if (!Vec2.equals(antenna, a)) {
+          antinodesT1.push(...getAntiNodes(antenna, a, false, 0));
+          antinodesT2.push(...getAntiNodes(antenna, a, true, grid.length));
+        }
+      }
     }
   }
 
@@ -55,36 +50,24 @@ function getAntiNodes(
   addSteps: boolean,
   limit: number
 ): Vec2[] {
-  const center = Vec2.lerp(a, b, 0.5);
-  const dist = Vec2.distanceTo(a, b);
-  const angle = Math.atan2(a.y - b.y, a.x - b.x);
-
-  const computePoint = (angleOffset: number): Vec2 => {
-    const offsetAngle = angle + angleOffset;
-    const x = center.x + Math.cos(offsetAngle) * dist * 1.5;
-    const y = center.y + Math.sin(offsetAngle) * dist * 1.5;
-    const v = Vec2.create(x, y);
-    Vec2.round(v);
-    Vec2.normalizeZero(v);
-    return v;
-  };
-
-  const node1 = computePoint(0);
-  const node2 = computePoint(Math.PI);
-  const steps: Vec2[] = [];
-
-  if (addSteps) {
-    const stepX = a.x - node1.x;
-    const stepY = a.y - node1.y;
-    const stepSize = Vec2.create(stepX, stepY);
-
-    let step = Vec2.copy(a);
-    while (step.x >= 0 && step.x <= limit && step.y >= 0 && step.y <= limit) {
-      step = Vec2.add(step, stepSize);
-      steps.push(Vec2.copy(step));
-    }
+  const diff = Vec2.create(a.x - b.x, a.y - b.y);
+  const n1 = Vec2.add(a, diff);
+  const n2 = Vec2.add(b, Vec2.negate(diff));
+  
+  if (!addSteps) {
+    return [n1, n2];
   }
-  return [node1, node2, ...steps];
+
+  const stepSize = Vec2.subtract(a, n1);
+  const steps: Vec2[] = [];
+  let step = Vec2.copy(a);
+
+  while (step.x >= 0 && step.x <= limit && step.y >= 0 && step.y <= limit) {
+    step = Vec2.add(step, stepSize);
+    steps.push(Vec2.copy(step));
+  }
+
+  return [n1, n2, ...steps];
 }
 
 function getDistictAntinodes(antinodes: Vec2[]): Vec2[] {

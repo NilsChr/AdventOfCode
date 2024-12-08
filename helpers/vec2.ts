@@ -3,6 +3,7 @@ export const Vec2 = {
   create: (x: number = 0, y: number = 0): Vec2 => ({ x, y }),
 
   add: (a: Vec2, b: Vec2): Vec2 => ({ x: a.x + b.x, y: a.y + b.y }),
+  subtract: (a: Vec2, b: Vec2): Vec2 => ({ x: a.x - b.x, y: a.y - b.y }),
 
   addTo: (a: Vec2, b: Vec2): Vec2 => {
     a.x += b.x;
@@ -26,6 +27,12 @@ export const Vec2 = {
   floor: (v: Vec2): Vec2 => {
     v.x = Math.floor(v.x);
     v.y = Math.floor(v.y);
+    return v;
+  },
+
+  negate: (v: Vec2): Vec2 => {
+    v.x = -v.x;
+    v.y = -v.y;
     return v;
   },
 
