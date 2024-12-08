@@ -47,6 +47,8 @@ async function runDay(
   try {
     const module = await import(`${scriptPath}/index.ts`);
     if (typeof module.run === "function") {
+      await module.run(__dirname);
+
       const start = process.hrtime.bigint();
       [task1 = 0, task2 = 0] = await module.run(__dirname);
       const end = process.hrtime.bigint();
