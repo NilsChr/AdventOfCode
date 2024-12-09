@@ -7,7 +7,7 @@ export async function parseFileToRows(filePath: string): Promise<string[]> {
   return data.split(/\r?\n/);
 }
 
-export async function parseFileToInts(filePath: string): Promise<number[]> {
+export async function parseFileRowsToInts(filePath: string): Promise<number[]> {
   const data = await Bun.file(filePath).text();
   const rows = data.split(/\r?\n/);
 
@@ -23,6 +23,16 @@ export async function parseFileToInts(filePath: string): Promise<number[]> {
   }
 
   return numbers;
+}
+
+export async function parseFileToInt32Array(filePath: string): Promise<Int32Array> {
+  const data = await Bun.file(filePath).text();
+  const array = Int32Array.from(data, (char) => {
+    const charCode = char.charCodeAt(0);
+    return charCode >= 48 && charCode <= 57 ? charCode - 48 : 0;
+  });
+
+  return array;
 }
 
 export async function parseFileToGrid(filePath: string): Promise<string[][]> {
