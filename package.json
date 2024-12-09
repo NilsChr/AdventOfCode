@@ -5,7 +5,8 @@
   "scripts": {
     "start": "FILE=input bun run index.ts",
     "test": "FILE=test bun run index.ts",
-    "generate": "bun run generate.ts"
+    "generate": "bun run generate.ts",
+    "help": "bun run start --help"
   },
   "devDependencies": {
     "bun-types": "latest"
