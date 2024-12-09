@@ -23,9 +23,11 @@ export function debugGrid(
   }
 }
 
-export async function waitForSpacePress(): Promise<void> {
+export async function waitForSpacePress(showPrompt: boolean = true, clearScreen: boolean = false): Promise<void> {
   return new Promise((resolve) => {
-    console.log("\npress space to progress debug");
+    if(showPrompt) {
+      console.log("\npress space to progress debug");
+    }
 
     const rl = readline.createInterface({
       input: process.stdin,
@@ -45,6 +47,9 @@ export async function waitForSpacePress(): Promise<void> {
           process.stdin.setRawMode(false);
         }
         rl.close();
+        if(clearScreen) {
+          console.clear();
+        }
         resolve();
       }
     };
