@@ -2,7 +2,7 @@ import { Vec2 } from "./vec2";
 import readline from "readline";
 
 export function debugGrid(
-  grid: string[][],
+  grid: string[][] | number[][],
   debugPoints: { pos: Vec2; char: string }[],
   clear = true
 ) {
@@ -16,7 +16,8 @@ export function debugGrid(
       if (debugPoint) {
         row += debugPoint.char;
       } else {
-        row += grid[y][x];
+        const cell: string | number = grid[y][x];
+        row += cell;
       }
     }
     console.log(row);
@@ -25,7 +26,7 @@ export function debugGrid(
 
 export async function waitForSpacePress(showPrompt: boolean = true, clearScreen: boolean = false): Promise<void> {
   return new Promise((resolve) => {
-    if(showPrompt) {
+    if (showPrompt) {
       console.log("\npress space to progress debug");
     }
 
@@ -41,13 +42,14 @@ export async function waitForSpacePress(showPrompt: boolean = true, clearScreen:
 
     const handleKeyPress = (chunk: Buffer) => {
       if (chunk.toString() === " ") {
+        console.log("");
         // Spacebar is represented as " "
         process.stdin.removeListener("data", handleKeyPress);
         if (process.stdin.isTTY) {
           process.stdin.setRawMode(false);
         }
         rl.close();
-        if(clearScreen) {
+        if (clearScreen) {
           console.clear();
         }
         resolve();

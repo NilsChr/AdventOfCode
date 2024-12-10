@@ -41,6 +41,12 @@ export async function parseFileToGrid(filePath: string): Promise<string[][]> {
   return rows.map((line) => line.split(""));
 }
 
+export async function parseFileToGridOfType<T>(filePath: string, converter: (char: string) => T): Promise<T[][]> {
+  const data = await Bun.file(filePath).text();
+  const rows = data.split(/\r?\n/);
+  return rows.map((line) => line.split("").map(converter));
+}
+
 export async function parseFileToGridUint8(
   filePath: string
 ): Promise<Uint8Array[][]> {
