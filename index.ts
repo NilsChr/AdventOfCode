@@ -64,7 +64,7 @@ async function runDay(
   console.log(
     `${"Day".padEnd(cellPaddingSmall)} ${"Task1".padEnd(
       cellPadding
-    )} ${"Task2".padEnd(cellPadding)} ${"Total".padEnd(cellPadding)}`
+    )} ${"Task2".padEnd(cellPadding)} ${"Time".padEnd(cellPadding)}`
   );
   console.log("-".repeat(cellPadding * 4));
 
