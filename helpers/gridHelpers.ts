@@ -16,7 +16,7 @@ export function getNeighbourCoords(grid: string[][] | number[][], pos: Vec2, dia
         { x: x - 1, y: y - 1 }, // Top-left
         { x: x + 1, y: y - 1 }, // Top-right
         { x: x - 1, y: y + 1 }, // Bottom-left
-        { x: x + 1, y: y + 1 }, //Bottom-right
+        { x: x + 1, y: y + 1 }, // Bottom-right
         ]
     }
 
@@ -37,4 +37,14 @@ export function getNeighbourCoords(grid: string[][] | number[][], pos: Vec2, dia
  */
 export function createBoolGrid(rows: number, cols: number): boolean[][] {
     return Array.from({ length: rows }, () => Array(cols).fill(false));
+}
+
+export function findCellsByValue(grid: string[][], value: string): Vec2[] {
+    const out: Vec2[] = [];
+    for(let y = 0; y < grid.length; y++) {
+        for(let x = 0; x < grid[0].length; x++) {
+            if(grid[x][y] === value) out.push(Vec2.create(x,y));
+        }      
+    }
+    return out;
 }
