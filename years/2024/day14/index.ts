@@ -20,17 +20,18 @@ export async function run(dir: string): Promise<[number, number]> {
 
   const room = Vec2.create(101, 103)
   const center = Vec2.create(Math.floor(room.x / 2), Math.floor(room.y / 2));
-  simulateRobots(robots, 100, room);
 
-  const q1 = robots.filter(r => r.pos.x < center.x && r.pos.y < center.y).length;
-  const q2 = robots.filter(r => r.pos.x > center.x && r.pos.y < center.y).length;
-  const q3 = robots.filter(r => r.pos.x < center.x && r.pos.y > center.y).length;
-  const q4 = robots.filter(r => r.pos.x > center.x && r.pos.y > center.y).length;
-  let task2 = simulateRobots(robots, 100000, room) + 100;
+  let safetyRatings: Vec2[] = [];
+  for (let i = 0; i < (room.x * room.y); i++) {
+    safetyRatings.push(Vec2.create(i, getSafetyRating(robots, center)));
+    simulateRobots(robots, 1, room);
+  }
 
-  const task1 = q1 * q2 * q3 * q4;;
+  let task1 = safetyRatings[100];
+  let task2 = safetyRatings.sort((a, b) => a.y - b.y)[0]
 
-  return [task1, task2]
+
+  return [task1.y, task2.x]
 }
 
 function parseRobot(line: string): Robot {
@@ -43,7 +44,16 @@ function parseRobot(line: string): Robot {
   }
 }
 
-function simulateRobots(robots: Robot[], seconds: number, room: Vec2): number {
+function getSafetyRating(robots: Robot[], center: Vec2): number {
+  const q1 = robots.filter(r => r.pos.x < center.x && r.pos.y < center.y).length;
+  const q2 = robots.filter(r => r.pos.x > center.x && r.pos.y < center.y).length;
+  const q3 = robots.filter(r => r.pos.x < center.x && r.pos.y > center.y).length;
+  const q4 = robots.filter(r => r.pos.x > center.x && r.pos.y > center.y).length;
+
+  return q1 * q2 * q3 * q4;
+}
+
+function simulateRobots(robots: Robot[], seconds: number, room: Vec2) {
   for (let s = 0; s < seconds; s++) {
     for (let robot of robots) {
       Vec2.addTo(robot.pos, robot.vel);
@@ -59,50 +69,7 @@ function simulateRobots(robots: Robot[], seconds: number, room: Vec2): number {
         robot.pos.y -= room.y;
       }
     }
-    let check = checkTree(robots, room, s);
-    if(check!== -1) {
-      return check;
-    }
   }
-  return -1;
-}
-
-function checkTree(robots: Robot[], room: Vec2, seconds: number): number {
-  //console.log(`Check ${seconds}`)
-  const depth = 3;
-  for (let robot of robots) {
-    let foundTree = false;
-    let legLeft = Vec2.create(robot.pos.x, robot.pos.y);
-    let legRight = Vec2.create(robot.pos.x, robot.pos.y);
-    let left = Vec2.create(-1, 1);
-    let right = Vec2.create(1, 1);
-    Vec2.addTo(legLeft, left);
-    Vec2.addTo(legRight, right);
-    let check = 0;
-    while (true) {
-      let foundLeft = robots.find(r => Vec2.equals(r.pos, legLeft));
-      let foundRight = robots.find(r => Vec2.equals(r.pos, legRight));
-      if (!foundLeft || !foundRight) break;
-      //console.log('CHECK MORE')
-      Vec2.addTo(legLeft, left);
-      Vec2.addTo(legRight, right);
-      check++;
-      if(check > depth) {
-        foundTree = true;
-        break;
-      }
-    }
-
-    if (foundTree) {
-//      debug(room, robots);
-//      console.log(`${seconds} second passed`)
-//      await waitForSpacePress();
-      return seconds + 1;
-    }
-
-  }
-
-  return -1;
 }
 
 function debug(room: Vec2, robots: Robot[], center: Vec2 | null = null) {
@@ -119,5 +86,3 @@ function debug(room: Vec2, robots: Robot[], center: Vec2 | null = null) {
     console.log(s);
   }
 }
-
-
