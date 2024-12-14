@@ -14,7 +14,7 @@ export async function parseFileRowsToInts(filePath: string): Promise<number[]> {
   const numbers: number[] = [];
   for (const line of rows) {
     const trimmed = line.trim();
-    if (trimmed === "") continue; // Optionally skip empty lines
+    if (trimmed === "") continue;
     const num = parseInt(trimmed, 10);
     if (Number.isNaN(num)) {
       throw new Error(`Failed to parse a line as i32: "${line}"`);

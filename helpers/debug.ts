@@ -24,7 +24,10 @@ export function debugGrid(
   }
 }
 
-export async function waitForSpacePress(showPrompt: boolean = true, clearScreen: boolean = false): Promise<void> {
+export async function waitForSpacePress(
+  showPrompt: boolean = true,
+  clearScreen: boolean = false
+): Promise<void> {
   return new Promise((resolve) => {
     if (showPrompt) {
       console.log("\npress space to progress debug");
@@ -35,7 +38,6 @@ export async function waitForSpacePress(showPrompt: boolean = true, clearScreen:
       output: process.stdout
     });
 
-    // Ensure raw mode is enabled for capturing single key presses
     if (process.stdin.isTTY) {
       process.stdin.setRawMode(true);
     }
@@ -43,7 +45,6 @@ export async function waitForSpacePress(showPrompt: boolean = true, clearScreen:
     const handleKeyPress = (chunk: Buffer) => {
       if (chunk.toString() === " ") {
         console.log("");
-        // Spacebar is represented as " "
         process.stdin.removeListener("data", handleKeyPress);
         if (process.stdin.isTTY) {
           process.stdin.setRawMode(false);
