@@ -14,9 +14,7 @@ class Robot {
 
   move(dir: Vec2) {
     if (!this.warehouse) return;
-
     const next = Vec2.add(this.pos, dir);
-
     if (this.warehouse.map[next.y][next.x] === "#") return;
 
     const crate = this.warehouse.crates.find((c) => c.containsPoint(next));
