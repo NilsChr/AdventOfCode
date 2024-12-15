@@ -43,7 +43,7 @@ export function findCellsByValue(grid: string[][], value: string): Vec2[] {
     const out: Vec2[] = [];
     for(let y = 0; y < grid.length; y++) {
         for(let x = 0; x < grid[0].length; x++) {
-            if(grid[x][y] === value) out.push(Vec2.create(x,y));
+            if(grid[y][x] === value) out.push(Vec2.create(x,y));
         }      
     }
     return out;
