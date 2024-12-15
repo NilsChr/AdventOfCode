@@ -42,9 +42,10 @@ export const Vec2 = {
     return v;
   },
 
-  normalizeZero: (v: Vec2) => {
+  normalizeZero: (v: Vec2): Vec2 => {
     v.x = v.x === 0 ? 0 : v.x;
     v.y = v.y === 0 ? 0 : v.y;
+    return v;
   },
 
   equals: (a: Vec2, b: Vec2): boolean => a.x === b.x && a.y === b.y,
