@@ -1,238 +1,92 @@
-// AStar.ts
-
+import { Direction } from "../direction";
+import PriorityQueue from "../priorityQueue";
 import { Vec2 } from "../vec2";
 
-// Define the Direction enum for cardinal directions
-export enum Direction {
-  North,
-  East,
-  South,
-  West
+/**
+ * Represents the cost associated with moving.
+ */
+export interface MovementCosts {
+  straightCost: number;
+  turnPenalty: number;
 }
 
-// Define the Node interface for each grid cell
-interface Node {
+/**
+ * Represents the symbols used to denote walkable and unwalkable (wall) cells.
+ */
+export interface GridSymbols {
+  walkable: string[];
+  wall: string[];
+}
+
+/**
+ * Represents the options/configuration for the A* algorithm.
+ */
+export interface AStarOptions {
+  heuristic?: (a: Vec2, b: Vec2) => number; // Optional custom heuristic
+}
+
+/**
+ * Represents a node in the A* search.
+ */
+export interface Node {
   x: number;
   y: number;
   direction: Direction;
   g: number; // Cost from start to this node
   f: number; // Total estimated cost (g + h)
-  parent?: Node; // Reference to parent node for path reconstruction
-  parents?: Node[]; // References to multiple parent nodes for multiple paths
+  parents: Node[]; // References to parent nodes for multiple paths
 }
 
-// Priority Queue Implementation (Min-Heap)
-class PriorityQueue<T> {
-  heap: T[];
-  private comparator: (a: T, b: T) => number;
-
-  constructor(comparator: (a: T, b: T) => number) {
-    this.heap = [];
-    this.comparator = comparator;
-  }
-
-  public enqueue(item: T): void {
-    this.heap.push(item);
-    this.bubbleUp();
-  }
-
-  public dequeue(): T | undefined {
-    if (this.heap.length === 0) return undefined;
-    const top = this.heap[0];
-    const end = this.heap.pop();
-    if (this.heap.length > 0 && end !== undefined) {
-      this.heap[0] = end;
-      this.bubbleDown();
-    }
-    return top;
-  }
-
-  public isEmpty(): boolean {
-    return this.heap.length === 0;
-  }
-
-  public contains(node: T): boolean {
-    return this.heap.includes(node);
-  }
-
-  private bubbleUp(): void {
-    let index = this.heap.length - 1;
-    const element = this.heap[index];
-
-    while (index > 0) {
-      const parentIndex = Math.floor((index - 1) / 2);
-      const parent = this.heap[parentIndex];
-      if (this.comparator(element, parent) >= 0) break;
-      this.heap[parentIndex] = element;
-      this.heap[index] = parent;
-      index = parentIndex;
-    }
-  }
-
-  private bubbleDown(): void {
-    let index = 0;
-    const length = this.heap.length;
-    const element = this.heap[0];
-
-    while (true) {
-      let leftChildIdx = 2 * index + 1;
-      let rightChildIdx = 2 * index + 2;
-      let swapIdx: number | null = null;
-
-      if (leftChildIdx < length) {
-        const leftChild = this.heap[leftChildIdx];
-        if (this.comparator(leftChild, element) < 0) {
-          swapIdx = leftChildIdx;
-        }
-      }
-
-      if (rightChildIdx < length) {
-        const rightChild = this.heap[rightChildIdx];
-        if (
-          (swapIdx === null && this.comparator(rightChild, element) < 0) ||
-          (swapIdx !== null &&
-            this.comparator(rightChild, this.heap[swapIdx]) < 0)
-        ) {
-          swapIdx = rightChildIdx;
-        }
-      }
-
-      if (swapIdx === null) break;
-
-      this.heap[index] = this.heap[swapIdx];
-      this.heap[swapIdx] = element;
-      index = swapIdx;
-    }
-  }
+export interface PathNode extends Vec2 {
+  cost: number;
 }
 
-// AStar Class
+/**
+ * Type definition for the neighbor generation function.
+ */
+export type GetNeighborsFunction = (
+  node: Node,
+  grid: string[][],
+  end: Vec2
+) => Node[];
+
 export class AStar {
   private grid: string[][];
-  private turnPenalty: number;
+  private heuristicFunc: (a: Vec2, b: Vec2) => number;
+  private getNeighbors: GetNeighborsFunction;
 
-  // Direction vectors for movement
-  private directionVectors: Record<Direction, { dx: number; dy: number }> = {
-    [Direction.North]: { dx: 0, dy: -1 },
-    [Direction.East]: { dx: 1, dy: 0 },
-    [Direction.South]: { dx: 0, dy: 1 },
-    [Direction.West]: { dx: -1, dy: 0 }
-  };
-
-  // Turn mappings
-  private leftTurn: Record<Direction, Direction> = {
-    [Direction.North]: Direction.West,
-    [Direction.West]: Direction.South,
-    [Direction.South]: Direction.East,
-    [Direction.East]: Direction.North
-  };
-
-  private rightTurn: Record<Direction, Direction> = {
-    [Direction.North]: Direction.East,
-    [Direction.East]: Direction.South,
-    [Direction.South]: Direction.West,
-    [Direction.West]: Direction.North
-  };
-
-  constructor(grid: string[][], turnPenalty: number = 1) {
+  constructor(
+    grid: string[][],
+    options: AStarOptions,
+    getNeighbors: GetNeighborsFunction
+  ) {
     this.grid = grid;
-    this.turnPenalty = turnPenalty;
+    this.heuristicFunc = options.heuristic || this.defaultHeuristic;
+    this.getNeighbors = getNeighbors;
   }
 
-  // Heuristic Function: Manhattan Distance
-  private heuristic(a: Vec2, b: Vec2): number {
+  /**
+   * Default heuristic function (Manhattan Distance).
+   */
+  private defaultHeuristic(a: Vec2, b: Vec2): number {
     return Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
   }
 
-  // Check if a cell is walkable (not a wall)
-  private isWalkable(x: number, y: number): boolean {
-    return (
-      y >= 0 &&
-      y < this.grid.length &&
-      x >= 0 &&
-      x < this.grid[0].length &&
-      this.grid[y][x] !== "#"
-    );
-  }
-
-  // Generate a unique key for each state
+  /**
+   * Generates a unique key for a node's state based on position and direction.
+   */
   private stateKey(x: number, y: number, d: Direction): string {
     return `${x},${y},${d}`;
   }
 
-  // Get neighbors for a node
-  private getNeighbors(node: Node, goal: Vec2): Node[] {
-    const { x, y, direction, g } = node;
-    const neighbors: Node[] = [];
-
-    // Move Forward
-    {
-      const { dx, dy } = this.directionVectors[direction];
-      const nx = x + dx;
-      const ny = y + dy;
-      if (this.isWalkable(nx, ny)) {
-        neighbors.push({
-          x: nx,
-          y: ny,
-          direction,
-          g: g + 1, // straightCost = 1
-          f: 0, // To be updated
-          parent: node
-        });
-      }
-    }
-
-    // Turn Left and Move
-    {
-      const ndir = this.leftTurn[direction];
-      const { dx, dy } = this.directionVectors[ndir];
-      const nx = x + dx;
-      const ny = y + dy;
-      if (this.isWalkable(nx, ny)) {
-        neighbors.push({
-          x: nx,
-          y: ny,
-          direction: ndir,
-          g: g + 1 + this.turnPenalty, // straightCost + turnPenalty
-          f: 0,
-          parent: node
-        });
-      }
-    }
-
-    // Turn Right and Move
-    {
-      const ndir = this.rightTurn[direction];
-      const { dx, dy } = this.directionVectors[ndir];
-      const nx = x + dx;
-      const ny = y + dy;
-      if (this.isWalkable(nx, ny)) {
-        neighbors.push({
-          x: nx,
-          y: ny,
-          direction: ndir,
-          g: g + 1 + this.turnPenalty,
-          f: 0,
-          parent: node
-        });
-      }
-    }
-
-    return neighbors;
-  }
-
   /**
    * Finds the single best (lowest cost) path from start to end.
-   * @param start Start position as Vec2.
-   * @param end End position as Vec2.
-   * @param startDirection Initial direction.
-   * @returns Array of Vec2 representing the path, or null if no path found.
    */
   public findBestPath(
     start: Vec2,
     end: Vec2,
     startDirection: Direction
-  ): Vec2[] | null {
+  ): PathNode[] | null {
     const openSet = new PriorityQueue<Node>((a, b) => a.f - b.f);
     const closedSet = new Set<string>();
 
@@ -241,8 +95,8 @@ export class AStar {
       y: start.y,
       direction: startDirection,
       g: 0,
-      f: this.heuristic(start, end),
-      parent: undefined
+      f: this.heuristicFunc(start, end),
+      parents: []
     };
 
     openSet.enqueue(startNode);
@@ -250,8 +104,7 @@ export class AStar {
     while (!openSet.isEmpty()) {
       const current = openSet.dequeue()!;
       const currentKey = this.stateKey(current.x, current.y, current.direction);
-
-      // If the current node is the goal, reconstruct the path
+      // If the current node is the goal, reconstruct and return the path
       if (current.x === end.x && current.y === end.y) {
         return this.reconstructPath(current);
       }
@@ -259,8 +112,12 @@ export class AStar {
       // Add current node to closed set
       closedSet.add(currentKey);
 
-      // Explore neighbors
-      const neighbors = this.getNeighbors(current, end);
+      // Explore neighbors using the provided neighbor function
+      const neighbors = this.getNeighbors(
+        current,
+        this.grid,
+        end
+      );
       for (const neighbor of neighbors) {
         const neighborKey = this.stateKey(
           neighbor.x,
@@ -271,8 +128,10 @@ export class AStar {
         // If neighbor is already evaluated, skip
         if (closedSet.has(neighborKey)) continue;
 
-        // Calculate tentative g score
-        const tentativeG = neighbor.g;
+        // Calculate f score
+        neighbor.f =
+          neighbor.g +
+          this.heuristicFunc({ x: neighbor.x, y: neighbor.y }, end);
 
         // Check if this path to neighbor is better
         let inOpenSet = false;
@@ -283,21 +142,19 @@ export class AStar {
             node.direction === neighbor.direction
           ) {
             inOpenSet = true;
-            if (tentativeG < node.g) {
-              node.g = tentativeG;
-              node.f = node.g + this.heuristic({ x: node.x, y: node.y }, end);
-              node.parent = current;
-              // Re-enqueue to update the position in the priority queue
-              openSet.enqueue(node);
+            if (neighbor.g < node.g) {
+              node.g = neighbor.g;
+              node.f = neighbor.f;
+              node.parents = [current];
+              openSet.enqueue(node); // Re-enqueue to update its position
+            } else if (neighbor.g === node.g) {
+              node.parents.push(current); // Handle multiple parents for multiple paths
             }
             break;
           }
         }
 
         if (!inOpenSet) {
-          // Set f score
-          neighbor.f =
-            tentativeG + this.heuristic({ x: neighbor.x, y: neighbor.y }, end);
           openSet.enqueue(neighbor);
         }
       }
@@ -308,19 +165,34 @@ export class AStar {
   }
 
   /**
+   * Reconstructs a single path from an end node to the start node.
+   */
+  private reconstructPath(endNode: Node): PathNode[] | null {
+    const path: PathNode[] = [];
+    let current: Node | undefined = endNode;
+
+    while (current) {
+      path.unshift({ x: current.x, y: current.y, cost: current.g });
+      if (current.parents.length > 0) {
+        current = current.parents[0]; // Follow the first parent
+      } else {
+        current = undefined;
+      }
+    }
+
+    return path.length > 0 ? path : null;
+  }
+
+  /**
    * Finds all best (lowest cost) paths from start to end.
-   * @param start Start position as Vec2.
-   * @param end End position as Vec2.
-   * @param startDirection Initial direction.
-   * @returns Array of paths, where each path is an array of Vec2, or empty array if no path found.
    */
   public findAllBestPaths(
     start: Vec2,
     end: Vec2,
     startDirection: Direction
-  ): Vec2[][] {
+  ): PathNode[][] {
     const openSet = new PriorityQueue<Node>((a, b) => a.f - b.f);
-    const closedSet = new Map<string, number>(); // Map of stateKey to g cost
+    const visited = new Map<string, number>();
     const allEndNodes: Node[] = [];
     let minimalGoalCost: number | null = null;
 
@@ -329,13 +201,12 @@ export class AStar {
       y: start.y,
       direction: startDirection,
       g: 0,
-      f: this.heuristic(start, end),
-      parent: undefined,
+      f: this.heuristicFunc(start, end),
       parents: []
     };
 
     openSet.enqueue(startNode);
-    closedSet.set(this.stateKey(start.x, start.y, startDirection), 0);
+    visited.set(this.stateKey(start.x, start.y, startDirection), 0);
 
     while (!openSet.isEmpty()) {
       const current = openSet.dequeue()!;
@@ -359,8 +230,12 @@ export class AStar {
         continue; // Continue searching for other paths with the same minimal cost
       }
 
-      // Explore neighbors
-      const neighbors = this.getNeighbors(current, end);
+      // Explore neighbors using the provided neighbor function
+      const neighbors = this.getNeighbors(
+        current,
+        this.grid,
+        end
+      );
       for (const neighbor of neighbors) {
         const neighborKey = this.stateKey(
           neighbor.x,
@@ -368,74 +243,65 @@ export class AStar {
           neighbor.direction
         );
 
-        if (
-          !closedSet.has(neighborKey) ||
-          neighbor.g < closedSet.get(neighborKey)!
-        ) {
+        const existingG = visited.get(neighborKey);
+
+        if (existingG === undefined || neighbor.g < existingG) {
           // Found a better path to this state
-          closedSet.set(neighborKey, neighbor.g);
+          visited.set(neighborKey, neighbor.g);
           neighbor.f =
-            neighbor.g + this.heuristic({ x: neighbor.x, y: neighbor.y }, end);
+            neighbor.g +
+            this.heuristicFunc({ x: neighbor.x, y: neighbor.y }, end);
           openSet.enqueue(neighbor);
-        } else if (neighbor.g === closedSet.get(neighborKey)!) {
+        } else if (neighbor.g === existingG) {
           // Found an alternative path with the same cost
-          // Find the existing node in openSet or closedSet and add the current node as a parent
-          // Note: This implementation assumes that nodes in openSet are unique per state
-          const existingNode = openSet.heap.find(
+          // Find the existing node in openSet and add current as a parent
+          const existingNodes = openSet["heap"].filter(
             (n) =>
               n.x === neighbor.x &&
               n.y === neighbor.y &&
               n.direction === neighbor.direction
           );
 
-          if (existingNode) {
-            if (!existingNode.parents) {
-              existingNode.parents = [];
-            }
-            existingNode.parents.push(current);
-          } else {
-            // If the node is not in openSet, it has already been processed
-            // For simplicity, this implementation does not track all processed nodes for multiple parents
-            // To fully support multiple paths, additional tracking is required
+          for (const node of existingNodes) {
+            node.parents.push(current);
           }
         }
       }
     }
 
     // Reconstruct all paths from end nodes
-    const allPaths: Vec2[][] = [];
+    const allPaths: PathNode[][] = [];
     for (const endNode of allEndNodes) {
-      const path = this.reconstructPath(endNode);
-      if (path) {
-        allPaths.push(path);
-      }
+      const paths = this.reconstructPaths(endNode);
+      allPaths.push(...paths);
     }
 
     return allPaths;
   }
 
-  // Reconstruct the path from a single end node
-  private reconstructPath(endNode: Node): Vec2[] | null {
-    const path: Vec2[] = [];
-    let current: Node | undefined = endNode;
-    while (current) {
-      path.push({ x: current.x, y: current.y });
-      current = current.parent;
-    }
-    return path.reverse();
-  }
+  /**
+   * Reconstructs all paths from an end node to the start node.
+   */
+  private reconstructPaths(endNode: Node): PathNode[][] {
+    const paths: PathNode[][] = [];
+    const path: PathNode[] = [];
 
-  // Reconstruct all paths from multiple end nodes
-  private reconstructAllPaths(endNodes: Node[]): Vec2[][] {
-    const allPaths: Vec2[][] = [];
+    const recurse = (node: Node, currentPath: PathNode[]) => {
+      currentPath.unshift({ x: node.x, y: node.y, cost: node.g });
 
-    for (const endNode of endNodes) {
-      const path = this.reconstructPath(endNode);
-      if (path) {
-        allPaths.push(path);
+      if (node.parents.length === 0) {
+        paths.push([...currentPath]);
+      } else {
+        for (const parent of node.parents) {
+          recurse(parent, currentPath);
+        }
       }
-    }
 
-    return allPaths;
+      currentPath.shift();
+    };
+
+    recurse(endNode, path);
+
+    return paths;
   }
 }
