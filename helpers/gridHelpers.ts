@@ -39,6 +39,10 @@ export function createBoolGrid(rows: number, cols: number): boolean[][] {
     return Array.from({ length: rows }, () => Array(cols).fill(false));
 }
 
+export function createStringGrid(rows: number, cols: number, char: string): string[][] {
+    return Array.from({ length: rows }, () => Array(cols).fill(char));
+}
+
 export function findCellsByValue(grid: string[][], value: string): Vec2[] {
     const out: Vec2[] = [];
     for(let y = 0; y < grid.length; y++) {
