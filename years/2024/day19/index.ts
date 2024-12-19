@@ -15,7 +15,8 @@ export async function run(dir: string): Promise<[number, number]> {
   let task2 = 0;
 
   for (let carpet of carpets) {
-    const score = solve(carpet, patterns);
+    const filteredPatterns = patterns.filter(p => carpet.includes(p));
+    const score = solve(carpet, filteredPatterns);
     if (score !== 0) task1++;
     task2 += score;
   }
@@ -37,7 +38,7 @@ function solve(
       result += solve(carpet.slice(pattern.length), patterns, cache);
     }
   }
+  
   cache.set(carpet, result);
-
-  return cache.get(carpet)!;
+  return result;
 }
