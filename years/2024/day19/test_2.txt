@@ -1,4 +1,0 @@
-a, b, c, d, e, f, ab, cd, efg
-
-abcdef
-abefgcda
