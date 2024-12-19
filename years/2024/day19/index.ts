@@ -1,139 +1,117 @@
 import { join } from "path";
 import { parseFileToRows } from "../../../helpers/fileParser";
 
-let highestLevel = 0;
-
 export async function run(dir: string): Promise<[number, number]> {
   const filePath = join(dir, `${process.env.FILE}.txt`);
   let input = await parseFileToRows(filePath);
 
-  const patterns = input[0].split(',').map(s => s.trim()).sort((a, b) => b.length - a.length);
+  const patterns = input[0]
+    .split(",")
+    .map((s) => s.trim())
+    .sort((a, b) => b.length - a.length);
   const carpets = input.slice(2);
-  //console.log(patterns);
-  //console.log(carpets);
 
-  /*
-  for(let i = 2; i < input.length; i++) {
-    console.log(input[i]);
-  }
-    */
-  let score = 0;
+  let task1 = 0;
+  let task2 = 0;
 
+  let processed = 0
   for (let carpet of carpets) {
-    console.log();
-    console.log('CHECK')
-    highestLevel = 0;
-    let carpetScore = checkDesign(carpet, patterns);
-    console.log(carpet)
-    console.log(carpetScore);
-    //console.log(`${carpet} score is ${carpetScore}`)
-    score += carpetScore === carpet ? 1 : 0;
+    const [a, b] = checkDesign(carpet, patterns);
+    console.log(`${processed++}/${carpets.length}`)
+    task1 += a;
+    task2 += b;
   }
 
-  //console.log('carpest', carpets.length)
-
-  //checkDesign(carpets[0], patterns);
-
-
-  const task1 = score;
-  const task2 = 0;
-
-  return [task1, task2]
+  return [task1, task2];
 }
+function checkDesign__(
+  carpet: string,
+  patterns: string[],
+  memo: Record<string, boolean> = {}
+): boolean {
+  if (carpet in memo) return memo[carpet];
+  if (carpet === "") return true;
 
-type CheckData = { validList: string[], complete: boolean }
-
-function checkDesign(carpet: string, patterns: string[]): string {
-  //console.log();
-  //console.log('0', carpet);
-  const checkData: CheckData = { validList: [], complete: false }
   for (let pattern of patterns) {
-    matchPattern(carpet, pattern, patterns, checkData, [], 0);
-  }
-  //console.log(checkData.validList);
-  //console.log('1',checkData.validList.join(""))
-  console.log(checkData.validList);
-  return checkData.validList.join("");//checkData.validList.length > 0 ? 1 : 0;
-}
-
-function matchPattern__(carpet: string, pattern: string, patterns: string[], checkData: CheckData, tempList: string[], level: number) {
-  if (checkData.complete) return;
-
-  if (carpet === "") {
-    checkData.validList.push(...tempList)
-    checkData.complete = true;
-    return;
-  }
-
-  if (carpet.length === 1) {
-    if (patterns.includes(carpet)) {
-      const temp = [...tempList, carpet];
-      matchPattern("", carpet, patterns, checkData, temp, level + 1);
-
-    } else {
-      checkData.complete = true;
-      return
-    }
-  } else {
-
-    const len = pattern.length;
-    if (carpet.substring(0, len) === pattern) {
-      const temp = [...tempList, pattern];
-      for (let pattern of patterns) {
-        matchPattern(carpet.slice(len), pattern, patterns, checkData, temp, level + 1);
+    if (pattern === "") continue;
+    if (carpet.startsWith(pattern)) {
+      const remaining = carpet.slice(pattern.length);
+      if (checkDesign__(remaining, patterns, memo)) {
+        memo[carpet] = true;
+        return true;
       }
     }
   }
+  memo[carpet] = false;
+  return false;
 }
 
-function matchPattern(
+type CheckData = { validList: Set<string>; complete: boolean; limit: number };
+
+function checkDesign(carpet: string, patterns: string[]): [number, number] {
+  //console.log(`Check design ${carpet}`);
+  const checkData: CheckData = {
+    validList: new Set(),
+    complete: false,
+    limit: 0
+  };
+  const validPatterns = patterns.filter(p => carpet.includes(p))
+
+  for (let pattern of patterns) {
+    matchPattern(carpet, pattern, validPatterns, checkData, [], 0);
+  }
+  //console.log(checkData.validList.size);
+  return [checkData.validList.size > 0 ? 1 : 0, checkData.validList.size];
+}
+
+async function matchPattern(
   carpet: string,
   pattern: string,
   patterns: string[],
   checkData: CheckData,
   tempList: string[],
   level: number
+  //memo: Set<string>
 ) {
-  if (checkData.complete) return; // Exit if already complete
+  if (checkData.limit++ > 100000000) return;
 
-  // Base case: when the carpet is empty
+  // Log the attempt to process the current substring
+  // console.log(`Processing: carpet="${carpet}", pattern="${pattern}"`);
+
+  // Add the current substring to the memoization set
+  //memo.add(key);
+
   if (carpet === "") {
-    checkData.validList.push(...tempList);
-    checkData.complete = true;
+    checkData.validList.add(tempList.join(","));
     return;
   }
 
-  // Avoid infinite loop: if the carpet length is the same as the last level
-  if (level > 0 && tempList.length > 0 && carpet === tempList[tempList.length - 1]) {
-    return; // Prevents reprocessing the same carpet substring
-  }
-
-  // Check for a single-character match
   if (carpet.length === 1) {
     if (patterns.includes(carpet)) {
-      checkData.validList.push(...tempList, carpet);
-      checkData.complete = true;
+      const temp = [...tempList, carpet];
+      tempList = [...tempList, carpet];
+      checkData.validList.add([...temp].join(","));
     }
-    return; // Exit after single-character check
+    return;
   }
 
-  // General case: match the pattern
-  console.log('CARPET', carpet);
-  if (carpet.startsWith(pattern)) {
-    const updatedTempList = [...tempList, pattern];
-    const remainingCarpet = carpet.slice(pattern.length);
-
-  
-
-    console.log('CHECK CARPETS', remainingCarpet);
-    for (const nextPattern of patterns) {
-      if (remainingCarpet.startsWith(nextPattern)) {
-
-        matchPattern(remainingCarpet, nextPattern, patterns, checkData, updatedTempList, level + 1);
-        //if (checkData.complete) return; // Stop further recursion if completed
-      }
+  const len = pattern.length;
+  if (carpet.substring(0, len) === pattern) {
+    const temp = [...tempList, pattern];
+    for (let pattern of patterns) {
+      matchPattern(
+        carpet.slice(len),
+        pattern,
+        patterns,
+        checkData,
+        temp,
+        level + 1
+        // memo
+      );
     }
-
-    // Exit if no progress was made
   }
 }
+
+//76983 too low
+//391903
+//2501451
