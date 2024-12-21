@@ -1,10 +1,8 @@
 import { join } from "path";
-import { parseFileToGrid, parseFileToRows } from "../../../helpers/fileParser";
+import { parseFileToGrid } from "../../../helpers/fileParser";
 import { Vec2 } from "../../../helpers/vec2";
 import { debugGrid, waitForSpacePress } from "../../../helpers/debug";
-import { Dijkstras } from "../../../helpers/pathfinding/dijkstra";
 import {
-  createBoolGrid,
   getNeighbourCoords
 } from "../../../helpers/gridHelpers";
 import { sleep } from "../../../helpers/time";
@@ -33,7 +31,7 @@ export async function run(dir: string): Promise<[number, number]> {
       }
     }
   }
-  debugGrid(grid, [])
+  debugGrid(grid, []);
 
   const aStar = new AStar(grid, {}, gridNeighborFunction);
   const path = aStar.findBestPath(start, end, Direction.East) || [];
@@ -45,17 +43,32 @@ export async function run(dir: string): Promise<[number, number]> {
   }
 
   const walls = findCheatableWalls(grid);
-  //console.log(walls.length)
+
+  const tests: Vec2[] = [
+    Vec2.create(8, 1),
+    Vec2.create(6, 7),
+    Vec2.create(10, 7),
+    Vec2.create(8, 8)
+  ];
+
   const saves = new Map<number, number>();
   let processed = 0;
-  //console.log(distanceCache)
   for (let w of walls) {
-    const shorterPath = Math.max(
+
+  
+
+    const shortEnd = Math.min(
       distanceCache.get(Vec2.toString(w.from))!,
       distanceCache.get(Vec2.toString(w.to))!
     );
-    const savedTime = distanceCache.size - shorterPath;
-    /*await waitForSpacePress();
+    const longEnd = Math.max(
+      distanceCache.get(Vec2.toString(w.from))!,
+      distanceCache.get(Vec2.toString(w.to))!
+    );
+    const newPathLength = (longEnd - shortEnd -2);
+    saves.set(newPathLength, (saves.get(newPathLength) || 0) + 1);
+/*
+    await waitForSpacePress();
     debugGrid(
       grid,
       [
@@ -66,23 +79,25 @@ export async function run(dir: string): Promise<[number, number]> {
       ],
       false
     );
-    console.log('From', w.from,distanceCache.get(Vec2.toString(w.from)));
-    console.log('To', w.to,distanceCache.get(Vec2.toString(w.to)))
-    console.log("Max: ", savedTime);
-    console.log("Saved Time: ", distanceCache.size - savedTime);
+    console.log('newPathLength', newPathLength)
+    console.log("Pos", w.pos);
+    console.log("From", w.from, distanceCache.get(Vec2.toString(w.from)));
+    console.log("To", w.to, distanceCache.get(Vec2.toString(w.to)));
+    console.log("Saved Time: ", savedTime);
     */
   }
 
-  console.log(saves);
+  //  console.log(saves);
   const keys = [...saves.keys()].sort((a, b) => a - b);
-  console.log(keys);
+  // console.log(keys);
+  let task1 = 0;
   for (let key of keys) {
+    if(key >= 100) task1 += saves.get(key)!;
     console.log(
       `There are ${saves.get(key)} cheats that save ${key} picoseconds.`
     );
   }
 
-  const task1 = 0;
   const task2 = 0;
 
   return [task1, task2];
