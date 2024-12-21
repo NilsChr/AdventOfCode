@@ -60,3 +60,47 @@ export async function waitForSpacePress(
     process.stdin.on("data", handleKeyPress);
   });
 }
+
+export enum KEY_CODE {
+  ARROW_UP = '\u001b[A',
+  ARROW_DOWN = '\u001b[B',
+  ARROW_RIGHT = '\u001b[C',
+  ARROW_LEFT = '\u001b[D',
+  ENTER = '\r',
+  ESCAPE = '\u001b',
+  SPACE = ' ', // Space key
+}
+
+export function awaitKeyPress(keys: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    let buffer = ''; // To handle multi-character sequences
+
+    const onData = (chunk: string) => {
+      if (chunk === '\u0003') { // Handle Ctrl+C (Exit immediately)
+        console.log('\nExiting...');
+        process.exit();
+      }
+
+      buffer += chunk;
+
+      // Check if the buffer matches any of the expected keys
+      if (keys.includes(buffer)) {
+        process.stdin.removeListener('data', onData); // Stop listening
+        process.stdin.setRawMode(false); // Reset raw mode
+        process.stdin.pause(); // Stop stdin
+        resolve(buffer); // Resolve with the matching key
+      }
+
+      // Reset the buffer if no matching key is found
+      if (!keys.some((key) => key.startsWith(buffer))) {
+        buffer = '';
+      }
+    };
+
+    process.stdin.on('data', onData);
+  });
+}
