@@ -5,23 +5,11 @@ import { Vec2 } from "../../../helpers/vec2";
 import { sleep } from "bun";
 import { getNeighbourCoords } from "../../../helpers/gridHelpers";
 
-//BEST <v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A
-// <,A,>,A,v,<,<,A,A,>,^,A,A,>,A,v,A,A,^,A,<,v,A,A,A,>,^
-// ^,A,<,<,^,^,A,>,>,A,v,v,v
-
-//BAD  v<<A>^>AvA^Av<<A>^>AAv<A<A>^>AAvA^<Av>A^Av<A^>AA<A>Av<A<A>^>AAA<Av>A^A
-// <,A,>,A,<,A,A,v,<,A,A,>,^,>,A,v,A,A,^,A,v,<,A,A,A,^,>
-// ^,A,^,^,<,<,A,>,>,A,v,v,v
-
-// <,A,>,A,v,<,<,A,A,>,^,A,A,>,A,v,A,A,^,A,<,v,A,A,A,>,^
-// <,A,>,A,<,A,A,v,<,A,A,>,^,>,A,v,A,A,^,A,v,<,A,A,A,^,>
-
 export async function run(dir: string): Promise<[number, number]> {
   const filePath = join(dir, `${process.env.FILE}.txt`);
   let lines = await parseFileToRows(filePath);
 
   const level2 = new NumericKeypad("2nd", null);
-  //const level2 = new ArrowKeypad("2nd", level3);
   const level1 = new ArrowKeypad("1st", level2);
   const root = new ArrowKeypad("root", level1);
 
