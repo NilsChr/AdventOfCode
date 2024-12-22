@@ -3,12 +3,18 @@ import { parseFileToRows } from "../../../helpers/fileParser";
 import { awaitKeyPress, KEY_CODE } from "../../../helpers/debug";
 import { Vec2 } from "../../../helpers/vec2";
 import { sleep } from "bun";
-import { Dijkstras } from "../../../helpers/pathfinding/dijkstra";
 import { getNeighbourCoords } from "../../../helpers/gridHelpers";
 
 //BEST <v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A
-//BAD  v<<A>^>AvA^Av<<A>^>AAv<A<A>^>AAvA^<Av>A^Av<A^>AA<A>Av<A<A>^>AAA<Av>A^A
+// <,A,>,A,v,<,<,A,A,>,^,A,A,>,A,v,A,A,^,A,<,v,A,A,A,>,^
+// ^,A,<,<,^,^,A,>,>,A,v,v,v
 
+//BAD  v<<A>^>AvA^Av<<A>^>AAv<A<A>^>AAvA^<Av>A^Av<A^>AA<A>Av<A<A>^>AAA<Av>A^A
+// <,A,>,A,<,A,A,v,<,A,A,>,^,>,A,v,A,A,^,A,v,<,A,A,A,^,>
+// ^,A,^,^,<,<,A,>,>,A,v,v,v
+
+// <,A,>,A,v,<,<,A,A,>,^,A,A,>,A,v,A,A,^,A,<,v,A,A,A,>,^
+// <,A,>,A,<,A,A,v,<,A,A,>,^,>,A,v,A,A,^,A,v,<,A,A,A,^,>
 
 export async function run(dir: string): Promise<[number, number]> {
   const filePath = join(dir, `${process.env.FILE}.txt`);
@@ -25,9 +31,9 @@ export async function run(dir: string): Promise<[number, number]> {
   console.clear();
 
   let totalcost = 0;
-  for(let line of lines) {
+  for (let line of lines) {
     totalcost += inputPassword(line, root, keyboards);
-    keyboards.forEach(k => k.reset());
+    keyboards.forEach((k) => k.reset());
   }
   let task1 = totalcost;
 
@@ -53,11 +59,11 @@ export async function run(dir: string): Promise<[number, number]> {
   console.log(s);
   */
 
-  /*const test =
-    "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A";
-    */
   /*
-  const test = root.getSequence("0");
+  const test =
+    "<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A";
+   
+ // const test = root.getSequence("0");
   //test.push("A")
   for (let t of test) {
     console.clear();
@@ -65,10 +71,11 @@ export async function run(dir: string): Promise<[number, number]> {
       keyboard.debug();
       console.log();
     }
-    await sleep(250);
+    await sleep(50);
     root.executeCommand(t);
   }
-
+    */
+  /*
   const test2 = root.getSequence("2");
   test2.push("A");
   for (let t of test2) {
@@ -107,7 +114,7 @@ function inputPassword(
   code: String,
   root: Keypad,
   keyboards: Keypad[]
-):number {
+): number {
   let totalSequence = 0;
   for (let i = 0; i < code.length; i++) {
     const sequence = root.getSequence(code.charAt(i));
@@ -125,10 +132,9 @@ function inputPassword(
       root.executeCommand(t);
     }
       */
-  
   }
 
-  console.log( parseInt(code.replace("A", "")), ' * ' , (totalSequence - 3))
+  console.log(parseInt(code.replace("A", "")), " * ", totalSequence - 3);
   const cost: number = parseInt(code.replace("A", "")) * (totalSequence - 3);
   console.log(cost);
   return cost;
@@ -170,6 +176,7 @@ const DIRS = {
 };
 
 interface Keypad {
+  type: string;
   buttons: string[][];
   position: Vec2;
   ghostPosition: Vec2; // ust this to "remember where you are" between fetches
@@ -183,6 +190,7 @@ interface Keypad {
 }
 
 class NumericKeypad implements Keypad {
+  type = "numeric";
   buttons: string[][] = [
     ["7", "8", "9"],
     ["4", "5", "6"],
@@ -245,6 +253,7 @@ class NumericKeypad implements Keypad {
         this.onEnter();
         break;
     }
+    this.ghostPosition = Vec2.copy(this.position);
 
     if (
       this.position.x < 0 ||
@@ -304,6 +313,8 @@ class NumericKeypad implements Keypad {
 }
 
 class ArrowKeypad implements Keypad {
+  type = "arrow";
+
   buttons: string[][] = [
     [" ", "^", "A"],
     ["<", "v", ">"]
@@ -355,7 +366,7 @@ class ArrowKeypad implements Keypad {
         this.onEnter();
         break;
     }
-
+    this.ghostPosition = Vec2.copy(this.position);
     if (
       this.position.x < 0 ||
       this.position.x > this.buttons[0].length - 1 ||
@@ -382,13 +393,49 @@ class ArrowKeypad implements Keypad {
     let sequence: string[] = [];
 
     for (let button of nextSequence) {
+
+        const part = getSequence(this, button);
+        sequence = [...sequence, ...part];
+      
       //console.log(`${this.id} button -> ${button}`);
-      const part = getSequence(this, button);
+
       //console.log(`${this.id} part -> ${part}`);
-      sequence = [...sequence, ...part];
     }
     //sequence.push('A');
     return sequence;
+  }
+
+  getHardcodedSequence(target: string) {
+    const current = this.buttons[this.ghostPosition.y][this.ghostPosition.x];
+    if (current === target) return [current];
+
+    if (current === "<") {
+      if (target === "v") return [">"];
+      if (target === ">") return [">", ">"];
+      if (target === "^") return [">", "^"];
+      if (target === ">") return [">", ">", "^"];
+    } else if (current === "v") {
+      if (target === "<") return ["<"];
+      if (target === ">") return [">"];
+      if (target === "^") return ["^"];
+      if (target === "A") return [">", "^"];
+    } else if (current === ">") {
+      if (target === "<") return ["<", "<"];
+      if (target === "v") return ["<"];
+      if (target === "^") return ["<", "^"];
+      if (target === "A") return ["^"];
+    } else if (current === "^") {
+      if (target === "<") return ["v", "<"];
+      if (target === "v") return ["v"];
+      if (target === ">") return ["v", ">"];
+      if (target === "A") return [">"];
+    }else if (current === "A") {
+      if (target === "<") return ["v", "<", "<"];
+      if (target === "v") return ["v", "<"];
+      if (target === ">") return ["v"];
+      if (target === "^") return ["<"];
+    }
+    return []
   }
 
   debug() {
@@ -455,11 +502,84 @@ function getSequence(keypad: Keypad, target: string): string[] {
   let sequence: string[] = [];
   for (let i = 0; i < path.length - 1; i++) {
     const abs = Vec2.abs(path[i], path[i + 1]);
+    /* if (Vec2.equals(abs, DIRS.LEFT)) sequence.push(">");
+    if (Vec2.equals(abs, DIRS.RIGHT)) sequence.push("<");
+    if (Vec2.equals(abs, DIRS.DOWN)) sequence.push("^");
+    if (Vec2.equals(abs, DIRS.UP)) sequence.push("v"); */
     if (Vec2.equals(abs, DIRS.LEFT)) sequence.push(">");
     if (Vec2.equals(abs, DIRS.RIGHT)) sequence.push("<");
     if (Vec2.equals(abs, DIRS.DOWN)) sequence.push("^");
     if (Vec2.equals(abs, DIRS.UP)) sequence.push("v");
   }
+  keypad.ghostPosition = path[path.length - 1];
+  sequence.push("A");
+  return sequence;
+}
+
+//  242716
+function getSequence_(keypad: Keypad, target: string): string[] {
+  const targetPos = keypad.positions.get(target);
+  if (!targetPos) {
+    throw new Error("Cannot find target position");
+  }
+
+  const costs = new Map<string, number>();
+  const previous = new Map<string, Vec2 | null>();
+  const queue: { pos: Vec2; cost: number }[] = [];
+
+  const startKey = Vec2.toString(keypad.ghostPosition);
+  costs.set(startKey, 0);
+  queue.push({ pos: keypad.ghostPosition, cost: 0 });
+
+  while (queue.length > 0) {
+    // Sort the queue to find the node with the smallest cost
+    queue.sort((a, b) => a.cost - b.cost);
+    const current = queue.shift()!;
+
+    if (Vec2.equals(current.pos, targetPos)) {
+      break;
+    }
+
+    const neighbors = getNeighbourCoords(keypad.buttons, current.pos, false);
+    for (const n of neighbors) {
+      if (keypad.buttons[n.y][n.x] === " ") continue; // Skip invalid buttons
+
+      const neighborKey = Vec2.toString(n);
+      const currentCost = costs.get(Vec2.toString(current.pos))!;
+      const newCost = currentCost + 1; // All moves have a cost of 1
+
+      if (!costs.has(neighborKey) || newCost < costs.get(neighborKey)!) {
+        costs.set(neighborKey, newCost);
+        previous.set(neighborKey, current.pos);
+        queue.push({ pos: n, cost: newCost });
+      }
+    }
+  }
+
+  // Reconstruct the path
+  const path: Vec2[] = [];
+  let currentPos: Vec2 | null = targetPos;
+
+  while (currentPos) {
+    path.push(currentPos);
+    const currentKey = Vec2.toString(currentPos);
+    currentPos = previous.get(currentKey) || null;
+  }
+
+  if (path.length === 0) return [];
+
+  path.reverse();
+
+  // Generate the sequence
+  const sequence: string[] = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const abs = Vec2.abs(path[i], path[i + 1]);
+    if (Vec2.equals(abs, DIRS.LEFT)) sequence.push(">");
+    if (Vec2.equals(abs, DIRS.RIGHT)) sequence.push("<");
+    if (Vec2.equals(abs, DIRS.DOWN)) sequence.push("^");
+    if (Vec2.equals(abs, DIRS.UP)) sequence.push("v");
+  }
+
   keypad.ghostPosition = path[path.length - 1];
   sequence.push("A");
   return sequence;

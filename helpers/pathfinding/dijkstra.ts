@@ -11,10 +11,10 @@ export class Dijkstras {
     const cols = grid[0].length;
 
     const directions = [
-      { x: 0, y: 1 },  // Down
+      { x: 0, y: 1 }, // Down
       { x: 0, y: -1 }, // Up
-      { x: 1, y: 0 },  // Right
-      { x: -1, y: 0 }, // Left
+      { x: 1, y: 0 }, // Right
+      { x: -1, y: 0 } // Left
     ];
 
     const isValid = (point: Vec2): boolean =>
@@ -28,7 +28,9 @@ export class Dijkstras {
       Array(cols).fill(Infinity)
     );
     const previous: Vec2[][][] = Array.from({ length: rows }, () =>
-      Array(cols).fill(null).map(() => [])
+      Array(cols)
+        .fill(null)
+        .map(() => [])
     );
 
     distance[start.y][start.x] = 0;
@@ -84,7 +86,11 @@ export class Dijkstras {
   }
 
   // Find all shortest paths
-  static findAllShortestPaths(grid: string[][], start: Vec2, end: Vec2): Vec2[][] {
+  static findAllShortestPaths(
+    grid: string[][],
+    start: Vec2,
+    end: Vec2
+  ): Vec2[][] {
     const { previous } = this.dijkstraCore(grid, start, end);
 
     // Backtrack recursively to find all shortest paths
@@ -116,12 +122,17 @@ export class Dijkstras {
   }
 
   // Find all possible paths (not necessarily shortest)
-  static findAllPaths(grid: string[][], start: Vec2, end: Vec2, maxPaths: number = Infinity): Vec2[][] {
+  static findAllPaths(
+    grid: string[][],
+    start: Vec2,
+    end: Vec2,
+    maxPaths: number = Infinity
+  ): Vec2[][] {
     const directions = [
-      { x: 0, y: 1 },  // Down
+      { x: 0, y: 1 }, // Down
       { x: 0, y: -1 }, // Up
-      { x: 1, y: 0 },  // Right
-      { x: -1, y: 0 }, // Left
+      { x: 1, y: 0 }, // Right
+      { x: -1, y: 0 } // Left
     ];
 
     const paths: Vec2[][] = [];
@@ -133,7 +144,7 @@ export class Dijkstras {
       const key = `${current.x},${current.y}`;
       // If already visited in this path, no need to continue
       if (visited.has(key)) return;
-      
+
       // Mark current node as visited
       visited.add(key);
       // Add current node to path
