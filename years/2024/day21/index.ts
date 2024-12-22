@@ -3,12 +3,18 @@ import { parseFileToRows } from "../../../helpers/fileParser";
 import { awaitKeyPress, KEY_CODE } from "../../../helpers/debug";
 import { Vec2 } from "../../../helpers/vec2";
 import { sleep } from "bun";
+import { Dijkstras } from "../../../helpers/pathfinding/dijkstra";
+import { getNeighbourCoords } from "../../../helpers/gridHelpers";
+
+//BEST <v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A
+//BAD  v<<A>^>AvA^Av<<A>^>AAv<A<A>^>AAvA^<Av>A^Av<A^>AA<A>Av<A<A>^>AAA<Av>A^A
+
 
 export async function run(dir: string): Promise<[number, number]> {
   const filePath = join(dir, `${process.env.FILE}.txt`);
-  let input = await parseFileToRows(filePath);
+  let lines = await parseFileToRows(filePath);
 
-  const level2 = new NumericKeypad("2rd", null);
+  const level2 = new NumericKeypad("2nd", null);
   //const level2 = new ArrowKeypad("2nd", level3);
   const level1 = new ArrowKeypad("1st", level2);
   const root = new ArrowKeypad("root", level1);
@@ -18,10 +24,54 @@ export async function run(dir: string): Promise<[number, number]> {
   const sequence: string[] = [];
   console.clear();
 
+  let totalcost = 0;
+  for(let line of lines) {
+    totalcost += inputPassword(line, root, keyboards);
+    keyboards.forEach(k => k.reset());
+  }
+  let task1 = totalcost;
+
+  //await inputPassword("379A", root, keyboards);
+
+  //let task1 = 0;
+  // [ "v", "<", "A", "<", "A", "A", ">", "^", ">", "A", "v", "A", "^", "<", "A", "v", ">", "A", "^", "A" ]
+  //const s = root.getSequence("0") //level2.getSequence("7");
+  //console.log(s);
   /*
-  const test =
+  const s = getSequence(level2, "0"); //level2.getSequence("7");
+  const s0 = getSequence(level1, s[0]) //level1.getSequence(s[0]);
+  */
+  //level1.debug();
+  //console.log(s0);
+  //console.log();
+  //level2.debug();
+  //console.log(s);
+
+  /*
+  let s = getSequence(level2, "0"); //root.getSequence("0");
+  s = getSequence(level2, "A"); //root.getSequence("0");
+  console.log(s);
+  */
+
+  /*const test =
     "<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A";
+    */
+  /*
+  const test = root.getSequence("0");
+  //test.push("A")
   for (let t of test) {
+    console.clear();
+    for (let keyboard of keyboards) {
+      keyboard.debug();
+      console.log();
+    }
+    await sleep(250);
+    root.executeCommand(t);
+  }
+
+  const test2 = root.getSequence("2");
+  test2.push("A");
+  for (let t of test2) {
     console.clear();
     for (let keyboard of keyboards) {
       keyboard.debug();
@@ -33,9 +83,10 @@ export async function run(dir: string): Promise<[number, number]> {
     */
 
   // MANUAL DEBUG
+  // "<", "A", "<", "A", "<", "A", "v", "<", "<", "A", "v", "<", "<", "A", "A"
+  /*
   while (true) {
-
-    for(let keyboard of keyboards) {
+    for (let keyboard of keyboards) {
       keyboard.debug();
       console.log();
     }
@@ -45,12 +96,42 @@ export async function run(dir: string): Promise<[number, number]> {
     root.executeCommand(pressedKey);
     //console.log(`Key pressed ${pressedKey}`);
   }
-  
+    */
 
-  const task1 = 0;
   const task2 = 0;
 
   return [task1, task2];
+}
+
+function inputPassword(
+  code: String,
+  root: Keypad,
+  keyboards: Keypad[]
+):number {
+  let totalSequence = 0;
+  for (let i = 0; i < code.length; i++) {
+    const sequence = root.getSequence(code.charAt(i));
+    if (i === code.length - 1) sequence.push("A");
+    totalSequence += sequence.length;
+    /*
+    for (let t of sequence) {
+      console.clear();
+      console.log('input password: ', code.split("").join(","));
+      for (let keyboard of keyboards) {
+        keyboard.debug();
+        console.log();
+      }
+      await sleep(500);
+      root.executeCommand(t);
+    }
+      */
+  
+  }
+
+  console.log( parseInt(code.replace("A", "")), ' * ' , (totalSequence - 3))
+  const cost: number = parseInt(code.replace("A", "")) * (totalSequence - 3);
+  console.log(cost);
+  return cost;
 }
 
 async function getInput(): Promise<string> {
@@ -89,9 +170,15 @@ const DIRS = {
 };
 
 interface Keypad {
+  buttons: string[][];
+  position: Vec2;
+  ghostPosition: Vec2; // ust this to "remember where you are" between fetches
+  positions: Map<string, Vec2>;
   executeCommand(command: string): void;
   onEnter(): void; // Define the type of return value
   debug(): void;
+  getSequence(target: string): string[];
+  reset(): void;
   next: Keypad | null;
 }
 
@@ -103,7 +190,11 @@ class NumericKeypad implements Keypad {
     [" ", "0", "A"]
   ];
 
+  positions: Map<string, Vec2> = new Map();
+
   position: Vec2 = Vec2.create(2, 3);
+  ghostPosition: Vec2 = Vec2.create(2, 3);
+
   next: Keypad | null;
   id: string;
   sequence: string[] = [];
@@ -111,6 +202,25 @@ class NumericKeypad implements Keypad {
   constructor(id: string, next: Keypad | null) {
     this.id = id;
     this.next = next;
+
+    this.positions.set("7", Vec2.create(0, 0));
+    this.positions.set("8", Vec2.create(1, 0));
+    this.positions.set("9", Vec2.create(2, 0));
+    this.positions.set("4", Vec2.create(0, 1));
+    this.positions.set("5", Vec2.create(1, 1));
+    this.positions.set("6", Vec2.create(2, 1));
+    this.positions.set("1", Vec2.create(0, 2));
+    this.positions.set("2", Vec2.create(1, 2));
+    this.positions.set("3", Vec2.create(2, 2));
+    this.positions.set("0", Vec2.create(1, 3));
+    this.positions.set("A", Vec2.create(2, 3));
+  }
+
+  reset() {
+    this.position = Vec2.create(2, 3);
+    this.ghostPosition = Vec2.create(2, 3);
+    this.output = [];
+    this.sequence = [];
   }
 
   executeCommand(command: string) {
@@ -156,6 +266,22 @@ class NumericKeypad implements Keypad {
     }
   }
 
+  getSequence(target: string): string[] {
+    return getSequence(this, target);
+    /*
+    if (!this.next) return [];
+    const nextSequence = getSequence(this.next!, target);
+    let sequence: string[] = [];
+
+    for (let button of nextSequence) {
+      const part = getSequence(this, button);
+      sequence = [...sequence, ...part];
+    }
+
+    return sequence;
+    */
+  }
+
   debug() {
     const RESET = "\x1b[0m";
     const GREEN = "\x1b[32m";
@@ -183,7 +309,9 @@ class ArrowKeypad implements Keypad {
     ["<", "v", ">"]
   ];
 
+  positions: Map<string, Vec2> = new Map();
   position: Vec2 = Vec2.create(2, 0);
+  ghostPosition: Vec2 = Vec2.create(2, 0);
 
   next: Keypad | null;
   id: string;
@@ -191,6 +319,18 @@ class ArrowKeypad implements Keypad {
   constructor(id: string, next: Keypad | null) {
     this.id = id;
     this.next = next;
+
+    this.positions.set("^", Vec2.create(1, 0));
+    this.positions.set("A", Vec2.create(2, 0));
+    this.positions.set("<", Vec2.create(0, 1));
+    this.positions.set("v", Vec2.create(1, 1));
+    this.positions.set(">", Vec2.create(2, 1));
+  }
+
+  reset() {
+    this.position = Vec2.create(2, 0);
+    this.ghostPosition = Vec2.create(2, 0);
+    this.sequence = [];
   }
 
   executeCommand(command: string) {
@@ -234,6 +374,23 @@ class ArrowKeypad implements Keypad {
     }
   }
 
+  getSequence(target: string): string[] {
+    if (!this.next) return [];
+    //console.log(`${this.id}Get sequence ${target}`);
+    const nextSequence = this.next.getSequence(target); //getSequence(this.next!, target);
+    //console.log(`${this.id} nextSequence -> ${nextSequence}`);
+    let sequence: string[] = [];
+
+    for (let button of nextSequence) {
+      //console.log(`${this.id} button -> ${button}`);
+      const part = getSequence(this, button);
+      //console.log(`${this.id} part -> ${part}`);
+      sequence = [...sequence, ...part];
+    }
+    //sequence.push('A');
+    return sequence;
+  }
+
   debug() {
     const RESET = "\x1b[0m";
     const GREEN = "\x1b[32m";
@@ -254,8 +411,59 @@ class ArrowKeypad implements Keypad {
   }
 }
 
+function getSequence(keypad: Keypad, target: string): string[] {
+  const targetPos = keypad.positions.get(target);
+  if (!targetPos) {
+    throw new Error("Cannot find target position");
+  }
 
+  const queue: { pos: Vec2; from: Vec2 | null }[] = [
+    { pos: keypad.ghostPosition, from: null }
+  ];
+  const visited: { pos: Vec2; from: Vec2 | null }[] = [];
+  let foundNode: { pos: Vec2; from: Vec2 | null } | null = null;
 
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (Vec2.equals(current.pos, targetPos)) {
+      foundNode = current;
+      break;
+    }
+
+    visited.push(current);
+
+    const neighbors = getNeighbourCoords(keypad.buttons, current.pos, false);
+    for (const n of neighbors) {
+      if (keypad.buttons[n.y][n.x] === " ") continue;
+      if (visited.find((v) => Vec2.equals(v.pos, n))) continue;
+      if (queue.find((q) => Vec2.equals(q.pos, n))) continue;
+      queue.push({ pos: n, from: current.pos });
+    }
+  }
+
+  if (!foundNode) return [];
+
+  const path: Vec2[] = [];
+  let currentNode = foundNode;
+  while (currentNode) {
+    path.push(currentNode.pos);
+    if (currentNode.from === null) break;
+    currentNode = visited.find((v) => Vec2.equals(v.pos, currentNode.from!))!;
+  }
+  path.reverse();
+
+  let sequence: string[] = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const abs = Vec2.abs(path[i], path[i + 1]);
+    if (Vec2.equals(abs, DIRS.LEFT)) sequence.push(">");
+    if (Vec2.equals(abs, DIRS.RIGHT)) sequence.push("<");
+    if (Vec2.equals(abs, DIRS.DOWN)) sequence.push("^");
+    if (Vec2.equals(abs, DIRS.UP)) sequence.push("v");
+  }
+  keypad.ghostPosition = path[path.length - 1];
+  sequence.push("A");
+  return sequence;
+}
 
 /*
 

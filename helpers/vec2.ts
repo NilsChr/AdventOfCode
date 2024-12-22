@@ -48,6 +48,10 @@ export const Vec2 = {
     return v;
   },
 
+  abs: (a: Vec2, b: Vec2) => {
+    return Vec2.create(a.x - b.x, a.y - b.y);
+  },
+
   equals: (a: Vec2, b: Vec2): boolean => a.x === b.x && a.y === b.y,
 
   toString: (v: Vec2): string => `${v.x},${v.y}`
