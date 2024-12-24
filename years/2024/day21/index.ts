@@ -164,6 +164,7 @@ const DIRS = {
 };
 
 interface Keypad {
+  id: string;
   type: string;
   buttons: string[][];
   position: Vec2;
@@ -381,49 +382,15 @@ class ArrowKeypad implements Keypad {
     let sequence: string[] = [];
 
     for (let button of nextSequence) {
+      const part = getSequence(this, button);
+      sequence = [...sequence, ...part];
 
-        const part = getSequence(this, button);
-        sequence = [...sequence, ...part];
-      
       //console.log(`${this.id} button -> ${button}`);
 
       //console.log(`${this.id} part -> ${part}`);
     }
     //sequence.push('A');
     return sequence;
-  }
-
-  getHardcodedSequence(target: string) {
-    const current = this.buttons[this.ghostPosition.y][this.ghostPosition.x];
-    if (current === target) return [current];
-
-    if (current === "<") {
-      if (target === "v") return [">"];
-      if (target === ">") return [">", ">"];
-      if (target === "^") return [">", "^"];
-      if (target === ">") return [">", ">", "^"];
-    } else if (current === "v") {
-      if (target === "<") return ["<"];
-      if (target === ">") return [">"];
-      if (target === "^") return ["^"];
-      if (target === "A") return [">", "^"];
-    } else if (current === ">") {
-      if (target === "<") return ["<", "<"];
-      if (target === "v") return ["<"];
-      if (target === "^") return ["<", "^"];
-      if (target === "A") return ["^"];
-    } else if (current === "^") {
-      if (target === "<") return ["v", "<"];
-      if (target === "v") return ["v"];
-      if (target === ">") return ["v", ">"];
-      if (target === "A") return [">"];
-    }else if (current === "A") {
-      if (target === "<") return ["v", "<", "<"];
-      if (target === "v") return ["v", "<"];
-      if (target === ">") return ["v"];
-      if (target === "^") return ["<"];
-    }
-    return []
   }
 
   debug() {
@@ -446,7 +413,78 @@ class ArrowKeypad implements Keypad {
   }
 }
 
+function getSequenceARROW(keypad: Keypad, target: string): string[] {
+  const targetPos = keypad.positions.get(target);
+  if (!targetPos) {
+    throw new Error("Cannot find target position");
+  }
+
+  const queue: { pos: Vec2; from: Vec2 | null; direction: Vec2 | null; cost: number }[] = [
+    { pos: keypad.ghostPosition, from: null, direction: null, cost: 0 }
+  ];
+  const visited: Map<string, { pos: Vec2; cost: number; from: Vec2 | null; direction: Vec2 | null }> = new Map();
+  let foundNode: { pos: Vec2; from: Vec2 | null; direction: Vec2 | null; cost: number } | null = null;
+
+  while (queue.length > 0) {
+    // Sort the queue by cost to prioritize paths with lower costs
+    queue.sort((a, b) => a.cost - b.cost);
+    const current = queue.shift()!;
+
+    if (Vec2.equals(current.pos, targetPos)) {
+      foundNode = current;
+      break;
+    }
+
+    const key = `${current.pos.x},${current.pos.y}`;
+    if (visited.has(key) && visited.get(key)!.cost <= current.cost) continue;
+    visited.set(key, { ...current });
+
+    const neighbors = getNeighbourCoords(keypad.buttons, current.pos, false);
+    for (const n of neighbors) {
+      if (keypad.buttons[n.y][n.x] === " ") continue;
+
+      const direction = Vec2.subtract(n, current.pos);
+      const key = `${n.x},${n.y}`;
+      const laneSwitchPenalty = current.direction && !Vec2.equals(current.direction, direction) ? 100 : 0;
+      const newCost = current.cost + 1 + laneSwitchPenalty;
+
+      if (visited.has(key) && visited.get(key)!.cost <= newCost) continue;
+
+      queue.push({ pos: n, from: current.pos, direction, cost: newCost });
+    }
+  }
+
+  if (!foundNode) return [];
+
+  // Reconstruct the path
+  const path: Vec2[] = [];
+  let currentNode = foundNode;
+  while (currentNode) {
+    path.push(currentNode.pos);
+    if (currentNode.from === null) break;
+    const key = `${currentNode.from.x},${currentNode.from.y}`;
+    currentNode = visited.get(key)!;
+  }
+  path.reverse();
+
+  // Generate the sequence
+  let sequence: string[] = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const abs = Vec2.abs(path[i], path[i + 1]);
+    if (Vec2.equals(abs, DIRS.LEFT)) sequence.push(">");
+    if (Vec2.equals(abs, DIRS.RIGHT)) sequence.push("<");
+    if (Vec2.equals(abs, DIRS.DOWN)) sequence.push("^");
+    if (Vec2.equals(abs, DIRS.UP)) sequence.push("v");
+  }
+  keypad.ghostPosition = path[path.length - 1];
+  sequence.push("A");
+  return sequence;
+}
+
+
+
 function getSequence(keypad: Keypad, target: string): string[] {
+  //if (keypad.type === "arrow") return getSequenceARROW(keypad, target);
   const targetPos = keypad.positions.get(target);
   if (!targetPos) {
     throw new Error("Cannot find target position");
@@ -490,10 +528,6 @@ function getSequence(keypad: Keypad, target: string): string[] {
   let sequence: string[] = [];
   for (let i = 0; i < path.length - 1; i++) {
     const abs = Vec2.abs(path[i], path[i + 1]);
-    /* if (Vec2.equals(abs, DIRS.LEFT)) sequence.push(">");
-    if (Vec2.equals(abs, DIRS.RIGHT)) sequence.push("<");
-    if (Vec2.equals(abs, DIRS.DOWN)) sequence.push("^");
-    if (Vec2.equals(abs, DIRS.UP)) sequence.push("v"); */
     if (Vec2.equals(abs, DIRS.LEFT)) sequence.push(">");
     if (Vec2.equals(abs, DIRS.RIGHT)) sequence.push("<");
     if (Vec2.equals(abs, DIRS.DOWN)) sequence.push("^");
@@ -502,6 +536,59 @@ function getSequence(keypad: Keypad, target: string): string[] {
   keypad.ghostPosition = path[path.length - 1];
   sequence.push("A");
   return sequence;
+}
+
+function getSequenceArrow(keypad: Keypad, target: string): string[] {
+  const targetPos = keypad.positions.get(target);
+  if (!targetPos) {
+    throw new Error("Cannot find target position");
+  }
+
+  /*
+  const queue: { pos: Vec2; from: Vec2 | null }[] = [
+    { pos: keypad.ghostPosition, from: null }
+  ];
+  */
+  const current = keypad.buttons[keypad.ghostPosition.y][keypad.ghostPosition.x];
+ // console.log("START ", keypad.id);
+ // console.log("Current: ", current);
+ // console.log("Target : ", target);
+  let out: string[] = [];
+  if (current === target) return [current];
+
+  if (current === "<") {
+    if (target === "v") out = [">"];
+    if (target === ">") out = [">", ">"];
+    if (target === "^") out = [">", "^"];
+    if (target === "A") out = [">", ">", "^"];
+  } else if (current === "v") {
+    if (target === "<") out = ["<"];
+    if (target === ">") out = [">"];
+    if (target === "^") out = ["^"];
+    if (target === "A") out = [">", "^"];
+  } else if (current === ">") {
+    if (target === "<") out = ["<", "<"];
+    if (target === "v") out = ["<"];
+    if (target === "^") out = ["<", "^"];
+    if (target === "A") out = ["^"];
+  } else if (current === "^") {
+    if (target === "<") out = ["v", "<"];
+    if (target === "v") out = ["v"];
+    if (target === ">") out = ["v", ">"];
+    if (target === "A") out = [">"];
+  } else if (current === "A") {
+    if (target === "<") out = ["v", "<", "<"];
+    if (target === "v") out = ["v", "<"];
+    if (target === ">") out = ["v"];
+    if (target === "^") out = ["<"];
+  }
+
+  keypad.ghostPosition = keypad.positions.get(target)!; // path[path.length - 1];
+
+  out.push("A");
+ // console.log("out: ", out);
+
+  return out;
 }
 
 //  242716
