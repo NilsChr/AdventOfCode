@@ -9,6 +9,11 @@ export async function run(dir: string): Promise<[number, number]> {
   const filePath = join(dir, `${process.env.FILE}.txt`);
   let lines = await parseFileToRows(filePath);
 
+  const root = new ArrowKeypad("root", null);
+  const seq = root.getSequence("<");
+  console.log(seq);
+
+  /*
   const level2 = new NumericKeypad("2nd", null);
   const level1 = new ArrowKeypad("1st", level2);
   const root = new ArrowKeypad("root", level1);
@@ -16,6 +21,8 @@ export async function run(dir: string): Promise<[number, number]> {
   const keyboards = [root, level1, level2];
 
   const sequence: string[] = [];
+  */
+  /*
   console.clear();
 
   let totalcost = 0;
@@ -24,7 +31,7 @@ export async function run(dir: string): Promise<[number, number]> {
     keyboards.forEach((k) => k.reset());
   }
   let task1 = totalcost;
-
+*/
   //await inputPassword("379A", root, keyboards);
 
   //let task1 = 0;
@@ -65,9 +72,11 @@ export async function run(dir: string): Promise<[number, number]> {
     */
   /*
   const test2 = root.getSequence("2");
+  console.log('TEST2', test2)
   test2.push("A");
   for (let t of test2) {
     console.clear();
+    console.log('PATH', test2)
     for (let keyboard of keyboards) {
       keyboard.debug();
       console.log();
@@ -75,8 +84,8 @@ export async function run(dir: string): Promise<[number, number]> {
     await sleep(250);
     root.executeCommand(t);
   }
-    */
 
+  */
   // MANUAL DEBUG
   // "<", "A", "<", "A", "<", "A", "v", "<", "<", "A", "v", "<", "<", "A", "A"
   /*
@@ -93,6 +102,7 @@ export async function run(dir: string): Promise<[number, number]> {
   }
     */
 
+  let task1 = 0;
   const task2 = 0;
 
   return [task1, task2];
@@ -375,7 +385,7 @@ class ArrowKeypad implements Keypad {
   }
 
   getSequence(target: string): string[] {
-    if (!this.next) return [];
+    if (!this.next) return getSequence(this, target);
     //console.log(`${this.id}Get sequence ${target}`);
     const nextSequence = this.next.getSequence(target); //getSequence(this.next!, target);
     //console.log(`${this.id} nextSequence -> ${nextSequence}`);
@@ -413,61 +423,128 @@ class ArrowKeypad implements Keypad {
   }
 }
 
-function getSequenceARROW(keypad: Keypad, target: string): string[] {
+function getSequence(keypad: Keypad, target: string): string[] {
+  //if (keypad.type === "arrow") return getSequenceARROW(keypad, target);
   const targetPos = keypad.positions.get(target);
   if (!targetPos) {
     throw new Error("Cannot find target position");
   }
 
-  const queue: { pos: Vec2; from: Vec2 | null; direction: Vec2 | null; cost: number }[] = [
-    { pos: keypad.ghostPosition, from: null, direction: null, cost: 0 }
+  const path: Vec2[] = [keypad.ghostPosition];
+  let currentPos = { ...keypad.ghostPosition }; // Track current position
+
+  // Resolve X-axis first
+  if (targetPos.x !== currentPos.x) {
+    console.log("FIRST X CORRECTION");
+    let vx = targetPos.x - currentPos.x < 0 ? -1 : 1;
+    while (currentPos.x !== targetPos.x) {
+      const nextX = currentPos.x + vx;
+      if (keypad.buttons[currentPos.y][nextX] === " ") break; // Blocked on X-axis
+      currentPos.x = nextX;
+      path.push(Vec2.create(currentPos.y, currentPos.x));
+    }
+    console.log(path);
+  }
+
+  // Resolve Y-axis if blocked on X-axis
+  if (currentPos.x !== targetPos.x && targetPos.y !== currentPos.y) {
+    console.log("FIRST Y CORRECTION");
+
+    let vy = targetPos.y - currentPos.y < 0 ? -1 : 1;
+    while (currentPos.y !== targetPos.y) {
+      const nextY = currentPos.y + vy;
+      if (keypad.buttons[nextY][currentPos.x] === " ") break; // Blocked on Y-axis
+      currentPos.y = nextY;
+      path.push(Vec2.create(currentPos.y, currentPos.x));
+    }
+    console.log(path);
+
+  }
+
+  // Retry X-axis after resolving Y-axis
+  if (currentPos.x !== targetPos.x) {
+    console.log("SECOND X CORRECTION");
+
+    let vx = targetPos.x - currentPos.x < 0 ? -1 : 1;
+    while (currentPos.x !== targetPos.x) {
+      const nextX = currentPos.x + vx;
+      if (keypad.buttons[currentPos.y][nextX] === " ") break; // Blocked again
+      currentPos.x = nextX;
+      path.push(Vec2.create(currentPos.y, currentPos.x));
+    }
+    console.log(path);
+
+  }
+  path.push(keypad.positions.get(target)!)
+
+  /*
+  const path: Vec2[] = [];
+  if(targetPos.x !== keypad.position.x) {
+    let vx = targetPos.x - keypad.position.x < 0 ? -1 : 1;
+    let tx = keypad.position.x;
+    while(tx !== targetPos.x) {
+      tx += vx;
+      if(keypad.buttons[keypad.position.y][tx] === ' ') break;
+      path.push(Vec2.create(keypad.position.y, tx));
+    }
+  }
+  if(targetPos.y !== keypad.position.y) {
+    let vy = targetPos.y - keypad.position.y < 0 ? -1 : 1;
+    let ty = keypad.position.y;
+    while(ty !== targetPos.y) {
+      ty += vy;
+      if(keypad.buttons[keypad.position.y][ty] === ' ') break;
+      path.push(Vec2.create(keypad.position.y, ty));
+    }
+  }
+  if(targetPos.x !== keypad.position.x) {
+    let vx = targetPos.x - keypad.position.x < 0 ? -1 : 1;
+    let tx = keypad.position.x;
+    while(tx !== targetPos.x) {
+      tx += vx;
+      if(keypad.buttons[keypad.position.y][tx] === ' ') break;
+      path.push(Vec2.create(keypad.position.y, tx));
+    }
+  }
+    */
+  //console.log(path);
+  /*
+  const queue: { pos: Vec2; from: Vec2 | null }[] = [
+    { pos: keypad.ghostPosition, from: null }
   ];
-  const visited: Map<string, { pos: Vec2; cost: number; from: Vec2 | null; direction: Vec2 | null }> = new Map();
-  let foundNode: { pos: Vec2; from: Vec2 | null; direction: Vec2 | null; cost: number } | null = null;
+  const visited: { pos: Vec2; from: Vec2 | null }[] = [];
+  let foundNode: { pos: Vec2; from: Vec2 | null } | null = null;
 
   while (queue.length > 0) {
-    // Sort the queue by cost to prioritize paths with lower costs
-    queue.sort((a, b) => a.cost - b.cost);
     const current = queue.shift()!;
-
     if (Vec2.equals(current.pos, targetPos)) {
       foundNode = current;
       break;
     }
 
-    const key = `${current.pos.x},${current.pos.y}`;
-    if (visited.has(key) && visited.get(key)!.cost <= current.cost) continue;
-    visited.set(key, { ...current });
+    visited.push(current);
 
     const neighbors = getNeighbourCoords(keypad.buttons, current.pos, false);
     for (const n of neighbors) {
       if (keypad.buttons[n.y][n.x] === " ") continue;
-
-      const direction = Vec2.subtract(n, current.pos);
-      const key = `${n.x},${n.y}`;
-      const laneSwitchPenalty = current.direction && !Vec2.equals(current.direction, direction) ? 100 : 0;
-      const newCost = current.cost + 1 + laneSwitchPenalty;
-
-      if (visited.has(key) && visited.get(key)!.cost <= newCost) continue;
-
-      queue.push({ pos: n, from: current.pos, direction, cost: newCost });
+      if (visited.find((v) => Vec2.equals(v.pos, n))) continue;
+      if (queue.find((q) => Vec2.equals(q.pos, n))) continue;
+      queue.push({ pos: n, from: current.pos });
     }
   }
 
   if (!foundNode) return [];
-
-  // Reconstruct the path
+  
   const path: Vec2[] = [];
   let currentNode = foundNode;
   while (currentNode) {
     path.push(currentNode.pos);
     if (currentNode.from === null) break;
-    const key = `${currentNode.from.x},${currentNode.from.y}`;
-    currentNode = visited.get(key)!;
+    currentNode = visited.find((v) => Vec2.equals(v.pos, currentNode.from!))!;
   }
+  */
   path.reverse();
 
-  // Generate the sequence
   let sequence: string[] = [];
   for (let i = 0; i < path.length - 1; i++) {
     const abs = Vec2.abs(path[i], path[i + 1]);
@@ -481,9 +558,7 @@ function getSequenceARROW(keypad: Keypad, target: string): string[] {
   return sequence;
 }
 
-
-
-function getSequence(keypad: Keypad, target: string): string[] {
+function getSequence_(keypad: Keypad, target: string): string[] {
   //if (keypad.type === "arrow") return getSequenceARROW(keypad, target);
   const targetPos = keypad.positions.get(target);
   if (!targetPos) {
@@ -537,139 +612,3 @@ function getSequence(keypad: Keypad, target: string): string[] {
   sequence.push("A");
   return sequence;
 }
-
-function getSequenceArrow(keypad: Keypad, target: string): string[] {
-  const targetPos = keypad.positions.get(target);
-  if (!targetPos) {
-    throw new Error("Cannot find target position");
-  }
-
-  /*
-  const queue: { pos: Vec2; from: Vec2 | null }[] = [
-    { pos: keypad.ghostPosition, from: null }
-  ];
-  */
-  const current = keypad.buttons[keypad.ghostPosition.y][keypad.ghostPosition.x];
- // console.log("START ", keypad.id);
- // console.log("Current: ", current);
- // console.log("Target : ", target);
-  let out: string[] = [];
-  if (current === target) return [current];
-
-  if (current === "<") {
-    if (target === "v") out = [">"];
-    if (target === ">") out = [">", ">"];
-    if (target === "^") out = [">", "^"];
-    if (target === "A") out = [">", ">", "^"];
-  } else if (current === "v") {
-    if (target === "<") out = ["<"];
-    if (target === ">") out = [">"];
-    if (target === "^") out = ["^"];
-    if (target === "A") out = [">", "^"];
-  } else if (current === ">") {
-    if (target === "<") out = ["<", "<"];
-    if (target === "v") out = ["<"];
-    if (target === "^") out = ["<", "^"];
-    if (target === "A") out = ["^"];
-  } else if (current === "^") {
-    if (target === "<") out = ["v", "<"];
-    if (target === "v") out = ["v"];
-    if (target === ">") out = ["v", ">"];
-    if (target === "A") out = [">"];
-  } else if (current === "A") {
-    if (target === "<") out = ["v", "<", "<"];
-    if (target === "v") out = ["v", "<"];
-    if (target === ">") out = ["v"];
-    if (target === "^") out = ["<"];
-  }
-
-  keypad.ghostPosition = keypad.positions.get(target)!; // path[path.length - 1];
-
-  out.push("A");
- // console.log("out: ", out);
-
-  return out;
-}
-
-//  242716
-function getSequence_(keypad: Keypad, target: string): string[] {
-  const targetPos = keypad.positions.get(target);
-  if (!targetPos) {
-    throw new Error("Cannot find target position");
-  }
-
-  const costs = new Map<string, number>();
-  const previous = new Map<string, Vec2 | null>();
-  const queue: { pos: Vec2; cost: number }[] = [];
-
-  const startKey = Vec2.toString(keypad.ghostPosition);
-  costs.set(startKey, 0);
-  queue.push({ pos: keypad.ghostPosition, cost: 0 });
-
-  while (queue.length > 0) {
-    // Sort the queue to find the node with the smallest cost
-    queue.sort((a, b) => a.cost - b.cost);
-    const current = queue.shift()!;
-
-    if (Vec2.equals(current.pos, targetPos)) {
-      break;
-    }
-
-    const neighbors = getNeighbourCoords(keypad.buttons, current.pos, false);
-    for (const n of neighbors) {
-      if (keypad.buttons[n.y][n.x] === " ") continue; // Skip invalid buttons
-
-      const neighborKey = Vec2.toString(n);
-      const currentCost = costs.get(Vec2.toString(current.pos))!;
-      const newCost = currentCost + 1; // All moves have a cost of 1
-
-      if (!costs.has(neighborKey) || newCost < costs.get(neighborKey)!) {
-        costs.set(neighborKey, newCost);
-        previous.set(neighborKey, current.pos);
-        queue.push({ pos: n, cost: newCost });
-      }
-    }
-  }
-
-  // Reconstruct the path
-  const path: Vec2[] = [];
-  let currentPos: Vec2 | null = targetPos;
-
-  while (currentPos) {
-    path.push(currentPos);
-    const currentKey = Vec2.toString(currentPos);
-    currentPos = previous.get(currentKey) || null;
-  }
-
-  if (path.length === 0) return [];
-
-  path.reverse();
-
-  // Generate the sequence
-  const sequence: string[] = [];
-  for (let i = 0; i < path.length - 1; i++) {
-    const abs = Vec2.abs(path[i], path[i + 1]);
-    if (Vec2.equals(abs, DIRS.LEFT)) sequence.push(">");
-    if (Vec2.equals(abs, DIRS.RIGHT)) sequence.push("<");
-    if (Vec2.equals(abs, DIRS.DOWN)) sequence.push("^");
-    if (Vec2.equals(abs, DIRS.UP)) sequence.push("v");
-  }
-
-  keypad.ghostPosition = path[path.length - 1];
-  sequence.push("A");
-  return sequence;
-}
-
-/*
-
-Get TO 0
-
-
-root: v < A < A A
-1st: v < < A > > ^ A
-2nd: < A
-
-
-
-
-*/
