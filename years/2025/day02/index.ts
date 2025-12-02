@@ -13,7 +13,7 @@ function check(input: string): [number, number] {
   let task1 = 0;
   let task2 = 0;
   for (let pair of pairs) {
-    const values = pair.split("-").map((v) => parseInt(v));
+    const values = pair.split("-").map(Number)
     for (let i = values[0]; i <= values[1]; i++) {
       const value = i;
       if (!isValidId(value, value.toString().length / 2)) {
@@ -38,15 +38,10 @@ function isValidId(input: number, windowSize: number): boolean {
   return true;
 }
 
-function getWindows(input: string, windowSize: number) {
-  let out = [];
-  let start = 0;
-  let end = start + windowSize;
-
-  for (let i = start; i < input.length; i += windowSize) {
+function getWindows(input: string, windowSize: number): string[] {
+  let out: string[] = [];
+  for(let i = 0; i < input.length; i += windowSize) {
     out.push(input.substring(i, i + windowSize));
-    end = i + windowSize;
   }
-
   return out;
 }
