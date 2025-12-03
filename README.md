@@ -11,8 +11,8 @@ bun install
 To run:
 
 ```bash
-bun run start
-bun run test     
+bun run start # args --year=YYYY --day=X --year=X-Y (range)
+bun run test  # args --year=YYYY --day=X --year=X-Y (range)   
 bun run generate # args --year=YYYY generates a full year of folders based on the ./template
 ```
 

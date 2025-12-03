@@ -6,7 +6,8 @@
     "start": "FILE=input bun run index.ts",
     "test": "FILE=test bun run index.ts",
     "generate": "bun run generate.ts",
-    "help": "bun run start --help"
+    "help": "bun run start --help",
+    "debug": "bun run index.ts"
   },
   "devDependencies": {
     "bun-types": "^1.3.3"

@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "bun",
+            "request": "launch",
+            "name": "Debug script with --day=3 and FILE=input",
+            "runtimeArgs": [
+                "run",
+                "debug" // Using your defined "debug" script
+            ],
+            // Add the 'env' property to set the required environment variable
+            "env": {
+                "FILE": "test" 
+            },
+            "args": [
+                "--day=3"
+            ],
+            "program": "${workspaceFolder}/package.json", 
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

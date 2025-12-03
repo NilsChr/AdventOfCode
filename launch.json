@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "bun",
+            "request": "launch",
+            "name": "Debug script with --day=3",
+            "runtimeArgs": [
+                "run",
+                "debug" 
+            ],        
+            "args": [
+                "--day=3"
+            ],
+            "program": "${workspaceFolder}/package.json", 
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
