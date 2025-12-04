@@ -9,34 +9,31 @@ export async function run(dir: string): Promise<[number, number]> {
   let task2 = 0;
   for (let line of input) {
     let bank = line.split("");
-    task1 += findHighestJoltage(bank, 2);
-    task2 += findHighestJoltage(bank, 12);
+    task1 += findHighestJoltage2(bank, 2);
+    task2 += findHighestJoltage2(bank, 12);
   }
 
   return [task1, task2];
 }
 
-function findHighestJoltage(bank: string[], size: number): number {
+function findHighestJoltage2(bank: string[], size: number): number {
   let out: string[] = [];
-  let minPointer = 0;
+  let startIndex = 0;
   for (let digit = 0; digit < size; digit++) {
-    if (bank.length === 1) {
-      out.push(bank[0]);
-      break;
-    }
-    let pointer = bank.length - (size - digit);
+    let pointer = startIndex;
+    let highestNumber = "0";
+    let highestNumberIndex = -1;
 
-    let numbers: string[] = [];
-    while (pointer >= 0) {
-      numbers.push(bank[pointer]);
-      pointer--;
+    while (pointer < bank.length - (size - digit - 1)) {
+      if (bank[pointer] > highestNumber) {
+        highestNumberIndex = pointer;
+        highestNumber = bank[pointer];
+      }
+      pointer++;
+      if (highestNumber === "9") break;
     }
-    let sorted = [...numbers].sort().reverse();
-    minPointer = bank.indexOf(sorted[0]);
-    out.push(bank[minPointer]);
-
-    bank = bank.slice(minPointer + 1);
+    startIndex = highestNumberIndex + 1;
+    out.push(highestNumber);
   }
-
   return parseInt(out.join(""));
 }
