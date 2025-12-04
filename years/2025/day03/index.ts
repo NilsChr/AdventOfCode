@@ -17,7 +17,7 @@ export async function run(dir: string): Promise<[number, number]> {
 }
 
 function findHighestJoltage(bank: string, size: number): string {
-  let out: string[] = [];
+  let out: string = '';
   let startIndex = 0;
   for (let digit = 0; digit < size; digit++) {
     let pointer = startIndex;
@@ -33,7 +33,7 @@ function findHighestJoltage(bank: string, size: number): string {
       if (highestNumber === "9") break;
     }
     startIndex = highestNumberIndex + 1;
-    out.push(highestNumber);
+    out += highestNumber;
   }
-  return out.join("");
+  return out;
 }
