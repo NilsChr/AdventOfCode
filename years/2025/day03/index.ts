@@ -8,15 +8,15 @@ export async function run(dir: string): Promise<[number, number]> {
   let task1 = 0;
   let task2 = 0;
   for (let line of input) {
-    let bank = line.split("");
-    task1 += findHighestJoltage2(bank, 2);
-    task2 += findHighestJoltage2(bank, 12);
+    let temp = findHighestJoltage(line, 12);
+    task1 += parseInt(findHighestJoltage(temp, 2));
+    task2 += parseInt(temp);
   }
 
   return [task1, task2];
 }
 
-function findHighestJoltage2(bank: string[], size: number): number {
+function findHighestJoltage(bank: string, size: number): string {
   let out: string[] = [];
   let startIndex = 0;
   for (let digit = 0; digit < size; digit++) {
@@ -35,5 +35,5 @@ function findHighestJoltage2(bank: string[], size: number): number {
     startIndex = highestNumberIndex + 1;
     out.push(highestNumber);
   }
-  return parseInt(out.join(""));
+  return out.join("");
 }
