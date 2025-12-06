@@ -1,76 +1,76 @@
 import { join } from "path";
-import { parseFileToRows } from "../../../helpers/fileParser";
+import { parseFileToGrid, parseFileToRows } from "../../../helpers/fileParser";
 
 export async function run(dir: string): Promise<[number, number]> {
   const filePath = join(dir, `${process.env.FILE}.txt`);
   let input = await parseFileToRows(filePath);
 
-  let operators = input[input.length - 1].split("");
-
-  let pointer = 0;
-  let matrixes: string[][][] = [];
-  while (pointer < operators.length) {
-    let operator = operators[pointer];
-    let operatorIndex = pointer;
-    let length = 0;
-    if (operator !== " ") {
-      while (operators[pointer + 1] === " ") {
-        length++;
-        pointer++;
-      }
-    } else continue;
-    if (pointer >= operators.length - 1) {
-      length = operators.length - operatorIndex + 1;
+  let operators = input[input.length - 1];
+  let columns: number[][] = [];
+  for (let i = 1; i < operators.length; i++) {
+    if (operators[i] === " ") continue;
+    if (columns.length === 0) {
+      let length = i - 1;
+      columns.push([0, length]);
+    } else {
+      const lastColumn = columns[columns.length - 1];
+      const columnStart = lastColumn[0] + lastColumn[1] + 1;
+      columns.push([columnStart, i - 1 - columnStart]);
     }
+  }
+  const lastColumn = columns[columns.length - 1];
+  const columnStart = lastColumn[0] + lastColumn[1] + 1;
+  columns.push([columnStart, input[0].length - columnStart]);
 
+
+  let matrixes: string[][][] = [];
+  for (let column of columns) {
     let matrix: string[][] = [];
-    for (let y = 0; y < input.length - 1; y++) {
-      let chunk = input[y].substring(operatorIndex, operatorIndex + length);
-      matrix.push(chunk.split(""));
+    for (let i = 0; i < input.length - 1; i++) {
+      let line = input[i];
+      const sub = line.substring(column[0], column[0] + column[1]);
+      matrix.push(sub.split(""));
     }
     matrixes.push(matrix);
-    pointer++;
   }
 
-  let t1 = 0;
-  let t2 = 0;
-  const operatorSigns = operators.filter((o) => o !== " ");
-  for (let i = 0; i < operatorSigns.length; i++) {
-    const operator = operatorSigns[i];
-    const matrix = matrixes[i];
+  let task1 = 0;
+  let task2 = 0;
 
-    t1 += sumMatrix(matrix, operator);
-    let m2 = rotateMatrix(matrix);
-    t2 += sumMatrix(m2, operator);
+  for (const [index, matrix] of matrixes.entries()) {
+    const operator = operators[columns[index][0]];
+    task1 += sumMatrix(matrix, operator);
+    task2 += sumMatrixRotated(matrix, operator);
   }
-  const task1 = t1;
-  const task2 = t2;
 
   return [task1, task2];
 }
 
-function rotateMatrix(matrix: string[][]): string[][] {
-  let matrixOut = [];
-  let columns = matrix[0].length;
-  for(let col = columns-1; col >= 0; col--) {
-    let row = []
-    for(let y = 0; y < matrix.length; y++) {
-      row.push(matrix[y][col])
-    }
-    matrixOut.push(row)
-  }
-  return matrixOut;
-
-} 
-
 function sumMatrix(matrix: string[][], operator: string): number {
-
   let sum = parseInt(matrix[0].join(""));
   for (let y = 1; y < matrix.length; y++) {
     const value = parseInt(matrix[y].join(""));
     if (operator === "+") {
       sum += value;
     } else sum *= value;
+  }
+  return sum;
+}
+
+function sumMatrixRotated(matrix: string[][], operator: string): number {
+  let sum = 0;
+  for (let x = matrix[0].length - 1; x >= 0; x--) {
+    let digit: string = "";
+    for (let y = 0; y < matrix.length; y++) {
+      digit += matrix[y][x];
+    }
+    let n = parseInt(digit);
+    if (sum === 0) sum = n;
+    else {
+      if (operator === "+") {
+        sum += n;
+      } else sum *= n;
+    }
   }
   return sum;
 }
