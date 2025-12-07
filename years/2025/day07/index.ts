@@ -6,45 +6,81 @@ export async function run(dir: string): Promise<[number, number]> {
   const filePath = join(dir, `${process.env.FILE}.txt`);
   let input = await parseFileToRows(filePath);
 
-  let splitters: Vec2[] = [];
-  let start: Vec2 = Vec2.create(0, 0);
-  for (let y = 0; y < input.length; y++) {
-    for (let x = 0; x < input[y].length; x++) {
-      if (input[y][x] === "S") {
-        start.x = x;
-        start.y = y;
-      } else if (input[y][x] === "^") {
-        splitters.push(Vec2.create(x, y));
-      }
+  let start = Vec2.create();
+  for (let i = 0; i < input[0].length; i++) {
+    if (input[0][i] === "S") {
+      start.x = i;
+      break;
     }
   }
-  splitters.sort((a, b) => a.y - b.y);
+  const splitters = getCollisionPoints(input, start);
 
   let cache: Map<string, number> = new Map();
-  let colSet: Set<string> = new Set();
-  let score = getScore(start, splitters, cache, colSet)
+  let score = getScore(start, splitters, cache);
 
-  const task1 = colSet.size;
+  const task1 = splitters.values().reduce((sum, arr) => {
+    return sum + arr.length;
+  }, 0);
   const task2 = score;
 
   return [task1, task2];
 }
 
-function getScore(pos: Vec2, splitters: Vec2[], cache: Map<string, number>, colSet: Set<string>): number {
-  let key = `${pos.x},${pos.y}`
-  if(cache.has(key)) return cache.get(key)!;
+function getScore(
+  pos: Vec2,
+  splitters: Map<number, number[]>,
+  cache: Map<string, number>
+): number {
+  let key = `${pos.x},${pos.y}`;
+  if (cache.has(key)) return cache.get(key)!;
   let col = checkRay(pos, splitters);
   if (!col) return 1;
-  colSet.add(`${col.x},${col.y}`)
-  let score = getScore(Vec2.create(col.x - 1, col.y), splitters,cache, colSet) +getScore(Vec2.create(col.x + 1, col.y), splitters,cache,colSet)
-  cache.set(key,score);
-  return score
+  let score =
+    getScore(Vec2.create(col.x - 1, col.y), splitters, cache) +
+    getScore(Vec2.create(col.x + 1, col.y), splitters, cache);
+  cache.set(key, score);
+  return score;
 }
 
-function checkRay(rayStart: Vec2, splitters: Vec2[]): Vec2 | null {
-  for (let i = 0; i < splitters.length; i++) {
-    if (splitters[i].x === rayStart.x && splitters[i].y > rayStart.y)
-      return splitters[i];
+function checkRay(
+  rayStart: Vec2,
+  splitters: Map<number, number[]>
+): Vec2 | null {
+  let yList = splitters.get(rayStart.x) ?? [];
+  for (let i = 0; i < yList.length; i++) {
+    if (yList[i] > rayStart.y) {
+      return Vec2.create(rayStart.x, yList[i]);
+    } 
   }
   return null;
+}
+
+function getCollisionPoints(
+  input: string[],
+  start: Vec2
+): Map<number, number[]> {
+  let out: Map<number, number[]> = new Map();
+  let currentXList: number[] = [start.x];
+
+  for (let y = 1; y < input.length; y++) {
+    let nextXs: Set<number> = new Set();
+
+    for (let x of currentXList) {
+      if (input[y][x] === "^") {
+        let arr = out.get(x);
+        if (!arr) {
+          arr = [];
+          out.set(x, arr);
+        }
+        arr.push(y);
+        nextXs.add(x - 1);
+        nextXs.add(x + 1);
+      } else {
+        nextXs.add(x);
+      }
+    }
+    currentXList = [...nextXs];
+  }
+
+  return out;
 }
