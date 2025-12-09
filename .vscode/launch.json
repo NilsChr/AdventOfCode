@@ -4,7 +4,7 @@
         {
             "type": "bun",
             "request": "launch",
-            "name": "Debug script with --day=8 and FILE=test",
+            "name": "Debug script with --day=9 and FILE=test",
             "runtimeArgs": [
                 "run",
                 "debug" // Using your defined "debug" script
@@ -14,7 +14,7 @@
                 "FILE": "test" 
             },
             "args": [
-                "--day=8"
+                "--day=9"
             ],
             "program": "${workspaceFolder}/package.json", 
             "cwd": "${workspaceFolder}"

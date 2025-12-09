@@ -56,3 +56,4 @@ export const Vec2 = {
 
   toString: (v: Vec2): string => `${v.x},${v.y}`
 };
+
